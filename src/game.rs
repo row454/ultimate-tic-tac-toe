@@ -1,110 +1,176 @@
 use core::fmt;
 
 
-pub struct Board {
+pub struct Game {
+    pub mini_boards: [[Board; 3]; 3],
     pub meta_board: [[BoardState; 3]; 3],
+    pub next_meta_move: Option<(usize, usize)>
 }
-impl Board {
+impl Game {
     pub fn new() -> Self {
-        Board {
-            meta_board: [[BoardState::Ongoing(SubBoard::new()), BoardState::Ongoing(SubBoard::new()), BoardState::Ongoing(SubBoard::new())],
-                    [BoardState::Ongoing(SubBoard::new()), BoardState::Ongoing(SubBoard::new()), BoardState::Ongoing(SubBoard::new())],
-                    [BoardState::Ongoing(SubBoard::new()), BoardState::Ongoing(SubBoard::new()), BoardState::Ongoing(SubBoard::new())]
-                ]
+        Game {
+            mini_boards: [[Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()]],
+            meta_board: [[BoardState::Ongoing; 3]; 3],
+            next_meta_move: None
         }
     }
 
-    pub fn check_wins(&self, pos: (usize, usize)) -> Option<BoardResult> {
-        let mut row = 0;
-        let mut col = 0;
-        let mut diag = 0;
-        let mut rdiag = 0;
-        for i in 0..3 {
-            row += match &self.meta_board[pos.1][i] { BoardState::Ongoing(_) => 0, BoardState::Concluded(x) => *x as i32};
-            col += match &self.meta_board[i][pos.0] { BoardState::Ongoing(_) => 0, BoardState::Concluded(x) => *x as i32};
-            diag += match &self.meta_board[i][i] { BoardState::Ongoing(_) => 0, BoardState::Concluded(x) => *x as i32};
-            rdiag += match &self.meta_board[i][2-i] { BoardState::Ongoing(_) => 0, BoardState::Concluded(x) => *x as i32};
-        }
-        if row == 3 || col == 3 || diag == 3 || rdiag == 3 {
-            return Some(BoardResult::XWin)
-        }
-        if row == -3 || col == -3 || diag == -3 || rdiag == -3 {
-            return Some(BoardResult::OWin)
-        }
-        return None
-}
-}
+    
 
-impl fmt::Display for Board {
+    pub fn get_icon(&self, meta_pos: (usize, usize), mini_pos: (usize, usize)) -> &'static str {
+        const BIG_X: [[&str; 3]; 3] = [
+            ["\\", " ", "/"],
+            [" ", "X", " "],
+            ["/", " ", "\\"],
+            ];
+        const BIG_O: [[&str; 3]; 3] = [
+            ["/", "-", "\\"],
+            ["|", "O", "|"],
+            ["\\", "-", "/"],
+            ];
+        match self.meta_board[meta_pos.1][meta_pos.0] {
+            BoardState::Ongoing | BoardState::Concluded(BoardResult::Tie) => {
+                match self.mini_boards[meta_pos.1][meta_pos.0].get_space(mini_pos) {
+                    BoardSpace::Empty => " ",
+                    BoardSpace::Taken(Player::X) => "X",
+                    BoardSpace::Taken(Player::O) => "O"
+                }
+            },
+            BoardState::Concluded(BoardResult::XWin) => BIG_X[mini_pos.1][mini_pos.0],
+            BoardState::Concluded(BoardResult::OWin) => BIG_O[mini_pos.1][mini_pos.0]
+
+
+
+
+        }
+    }
+    pub fn check_wins(&self, pos: (usize, usize)) -> BoardState {
+            let mut row = 0;
+            let mut col = 0;
+            let mut diag = 0;
+            let mut rdiag = 0;
+            for i in 0..3 {
+                row += match &self.meta_board[pos.1][i] { BoardState::Ongoing => 0, BoardState::Concluded(x) => *x as i32};
+                col += match &self.meta_board[i][pos.0] { BoardState::Ongoing => 0, BoardState::Concluded(x) => *x as i32};
+                diag += match &self.meta_board[i][i] { BoardState::Ongoing => 0, BoardState::Concluded(x) => *x as i32};
+                rdiag += match &self.meta_board[i][2-i] { BoardState::Ongoing => 0, BoardState::Concluded(x) => *x as i32};
+            }
+            if row == 3 || col == 3 || diag == 3 || rdiag == 3 {
+                return BoardState::Concluded(BoardResult::XWin)
+            }
+            if row == -3 || col == -3 || diag == -3 || rdiag == -3 {
+                return BoardState::Concluded(BoardResult::OWin)
+            }
+            if self.meta_board.iter().flatten().all(|x| matches!(x, BoardState::Concluded(_))) {
+                return BoardState::Concluded(BoardResult::Tie)
+            }
+
+            BoardState::Ongoing
+    }
+    pub fn place(&mut self, meta_pos: (usize, usize), mini_pos: (usize, usize), player: Player) -> Result<BoardState, InvalidMoveError> {
+        if let Some(next_meta_move) = self.next_meta_move {
+            if next_meta_move != meta_pos {
+                return Err(InvalidMoveError)
+            }
+        }
+
+        let mini_result = self.mini_boards[meta_pos.1][meta_pos.0].place(mini_pos, player)?;
+        self.meta_board[meta_pos.1][meta_pos.0] = mini_result;
+
+        if let BoardState::Ongoing = self.meta_board[mini_pos.1][mini_pos.0] {
+            self.next_meta_move = Some(mini_pos);
+        } else {
+            self.next_meta_move = None;
+        }
+        
+        if let BoardState::Concluded(result) = mini_result {
+            return Ok(self.check_wins(meta_pos))
+        }
+
+        Ok(BoardState::Ongoing)
+    }
+}
+pub struct InvalidMoveError;
+impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for meta_row in 0..2 {
-            for row in 0..2 {
-                for meta_column in 0..2 {
-                    write!(f, "{} | {} | {} \n", self.meta_board[meta_row][meta_column].get_icon((row, 0)), self.meta_board[meta_row][meta_column].get_icon((row, 1)), self.meta_board[meta_row][meta_column].get_icon((row, 2)))?;
-                    if meta_column != 2 {
+        for meta_y in 0..=2 {
+            for mini_y in 0..=2 {
+                for meta_x in 0..=2 {
+                    write!(f, " {} | {} | {} ", self.get_icon((meta_x, meta_y), (0, mini_y)), self.get_icon((meta_x, meta_y), (1, mini_y)), self.get_icon((meta_x, meta_y), (2, mini_y)))?;
+                    if meta_x != 2 {
                         write!(f,"║")?;
                     }
                 }
-                if row != 2 {
-                    write!(f,"\n")?;
-                    write!(f,"---+---+---╫---+---+---╫---+---+---\n")?;
+                if mini_y != 2 {
+                    writeln!(f)?;
+                    writeln!(f,"---+---+---╫---+---+---╫---+---+---")?;
                 }
             }
-        if meta_row != 2 {
-            write!(f,"\n")?;
-            write!(f,"═══════════╬═══════════╬═══════════\n")?;
+        if meta_y != 2 {
+            writeln!(f)?;
+            writeln!(f,"═══════════╬═══════════╬═══════════")?;
         }
-        write!(f,"\n")?;
+        // write!(f,"\n")?;
         }
         Ok(())
     }
 }
-pub struct SubBoard {
-    pub board: [[Option<Player>; 3]; 3],
+pub struct Board {
+    pub board: [[BoardSpace; 3]; 3],
     x_count: u32,
-    o_count: u32
+    o_count: u32,
 }
 
 
-impl SubBoard {
+impl Board {
     fn new() -> Self {
-        SubBoard {
-            board: [[None; 3]; 3],
+        Board {
+            board: [[BoardSpace::Empty; 3]; 3],
             x_count: 0,
             o_count: 0
         }
     }
-
-    pub fn place(&mut self, pos: (usize, usize), player: Player) -> Result<Option<BoardResult>, ()> {
-        if let None = self.board[pos.1][pos.0] {
-            self.board[pos.1][pos.0] = Some(player);
+    pub fn get_space(&self, pos: (usize, usize)) -> BoardSpace {
+        self.board[pos.1][pos.0]
+    }
+    fn place(&mut self, pos: (usize, usize), player: Player) -> Result<BoardState, InvalidMoveError> {
+        if let BoardSpace::Empty = self.board[pos.1][pos.0] {
+            self.board[pos.1][pos.0] = BoardSpace::Taken(player);
+            match player {
+                Player::X => self.x_count += 1,
+                Player::O => self.o_count += 1
+            }
             Ok(self.check_wins(pos))
         } else {
-            Err(())
+            Err(InvalidMoveError)
         }
     }
 
-    fn check_wins(&self, pos: (usize, usize)) -> Option<BoardResult> {
+    pub fn check_wins(&self, pos: (usize, usize)) -> BoardState {
         if self.x_count < 3 && self.o_count < 3 {
-            return None
+            BoardState::Ongoing
         } else {
             let mut row = 0;
             let mut col = 0;
             let mut diag = 0;
             let mut rdiag = 0;
             for i in 0..3 {
-                row += match &self.board[pos.1][i] { None => 0, Some(x) => *x as i32};
-                col += match &self.board[i][pos.0] { None => 0, Some(x) => *x as i32};
-                diag += match &self.board[i][i] { None => 0, Some(x) => *x as i32};
-                rdiag += match &self.board[i][2-i] { None => 0, Some(x) => *x as i32};
+                row += match &self.board[pos.1][i] { BoardSpace::Empty => 0, BoardSpace::Taken(x) => *x as i32};
+                col += match &self.board[i][pos.0] { BoardSpace::Empty => 0, BoardSpace::Taken(x) => *x as i32};
+                diag += match &self.board[i][i] { BoardSpace::Empty => 0, BoardSpace::Taken(x) => *x as i32};
+                rdiag += match &self.board[i][2-i] { BoardSpace::Empty => 0, BoardSpace::Taken(x) => *x as i32};
             }
             if row == 3 || col == 3 || diag == 3 || rdiag == 3 {
-                return Some(BoardResult::XWin)
+                return BoardState::Concluded(BoardResult::XWin)
             }
             if row == -3 || col == -3 || diag == -3 || rdiag == -3 {
-                return Some(BoardResult::OWin)
+                return BoardState::Concluded(BoardResult::OWin)
             }
-            return None
+            if self.x_count + self.o_count == 9 {
+                return BoardState::Concluded(BoardResult::Tie)
+            }
+
+            BoardState::Ongoing
 
         }
     }
@@ -115,6 +181,7 @@ pub enum Player {
     X = 1,
     O = -1
 }
+
 impl Player {
     pub fn switch(self) -> Player {
         match self {
@@ -123,42 +190,22 @@ impl Player {
         }
     }
 }
-pub enum BoardState {
-    Ongoing(SubBoard),
-    Concluded(BoardResult)
-}
-impl BoardState {
-    fn get_icon(&self, pos: (usize, usize)) -> &'static str {
-        if let BoardState::Ongoing(board) = self {
-            match board.board[pos.1][pos.0] {
-                None => " ",
-                Some(Player::X) => "X",
-                Some(Player::O) => "O"
-            }
-        } else if let BoardState::Concluded(result) = self {
-            const BIG_X: [[&'static str; 3]; 3] = [
-            ["\\", " ", "/"],
-            [" ", "X", " "],
-            ["/", " ", "\\"],
-            ];
-            const BIG_O: [[&'static str; 3]; 3] = [
-            ["/", "-", "\\"],
-            ["|", "O", " "],
-            ["\\", "-", "/"],
-            ];
-            match result {
-                BoardResult::XWin => BIG_X[pos.1][pos.0],
-                BoardResult::OWin => BIG_O[pos.1][pos.0],
-            }
-        } else {
-            panic!()
-        }
-        
-    }
-}
 
 #[derive(Copy, Clone)]
+pub enum BoardSpace {
+    Empty,
+    Taken(Player)
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum BoardResult {
     XWin = 1,
+    Tie = 0,
     OWin = -1
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum BoardState {
+    Ongoing,
+    Concluded(BoardResult)
 }
