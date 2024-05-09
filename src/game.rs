@@ -1,17 +1,54 @@
 use core::fmt;
+use std::{collections::HashSet, default};
+
+use rand::{seq::IteratorRandom, thread_rng};
 
 
+#[derive(Clone)]
 pub struct Game {
     pub mini_boards: [[Board; 3]; 3],
     pub meta_board: [[BoardState; 3]; 3],
-    pub next_meta_move: Option<(usize, usize)>
+    pub next_meta_move: Option<(usize, usize)>,
+    empty_spaces : HashSet<Position>,
+}
+pub type Position = ((usize, usize), (usize, usize));
+const ALL_SPACES: [Position; 81] = {
+    let mut pairs = [(0, 0); 9];
+    let mut i = 0;
+    let mut j = 0;
+    let mut result = [((0, 0), (0, 0)); 81];
+    while i < 3 {
+        j = 0;
+        while j < 3 {
+            pairs[i*3+j] = (i, j);
+            j += 1
+        }
+        i += 1
+    }
+    i = 0;
+    while i < 9 {
+        let mut j = 0;
+        while j < 9 {
+            result[i*9+j] = (pairs[i], pairs[j]);
+            j += 1
+        }
+        i += 1
+    }
+    result
+};
+
+impl Default for Game {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 impl Game {
     pub fn new() -> Self {
         Game {
             mini_boards: [[Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()]],
             meta_board: [[BoardState::Ongoing; 3]; 3],
-            next_meta_move: None
+            next_meta_move: None,
+            empty_spaces: HashSet::from(ALL_SPACES)
         }
     }
 
@@ -73,9 +110,14 @@ impl Game {
                 return Err(InvalidMoveError)
             }
         }
+        if let BoardState::Concluded(_) = self.meta_board[meta_pos.1][meta_pos.0] {
+            return Err(InvalidMoveError)
+        }
+
 
         let mini_result = self.mini_boards[meta_pos.1][meta_pos.0].place(mini_pos, player)?;
         self.meta_board[meta_pos.1][meta_pos.0] = mini_result;
+        assert!(self.empty_spaces.remove(&(meta_pos, mini_pos)));
 
         if let BoardState::Ongoing = self.meta_board[mini_pos.1][mini_pos.0] {
             self.next_meta_move = Some(mini_pos);
@@ -84,12 +126,24 @@ impl Game {
         }
         
         if let BoardState::Concluded(result) = mini_result {
+            self.empty_spaces.retain(|(meta, _mini)| meta != &meta_pos);
             return Ok(self.check_wins(meta_pos))
         }
 
         Ok(BoardState::Ongoing)
     }
+
+    pub fn get_possible_moves(&self)  -> HashSet<&Position> {
+        if let Some(meta_move) = self.next_meta_move {
+            let moves = self.empty_spaces
+            .iter()
+            .filter(|(meta, _mini)| meta == &meta_move).collect();
+            return moves
+        }
+        return self.empty_spaces.iter().collect();
+    }
 }
+#[derive(Debug)]
 pub struct InvalidMoveError;
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -115,6 +169,7 @@ impl fmt::Display for Game {
         Ok(())
     }
 }
+#[derive(Clone)]
 pub struct Board {
     pub board: [[BoardSpace; 3]; 3],
     x_count: u32,
@@ -188,6 +243,10 @@ impl Player {
             Self::X => Self::O,
             Self::O => Self::X
         }
+    }
+    pub fn random() -> Player {
+        let mut rng = thread_rng();
+        *[Self::X, Self::O].iter().choose(&mut rng).unwrap()
     }
 }
 
