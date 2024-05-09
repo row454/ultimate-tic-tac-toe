@@ -2,7 +2,7 @@ use std::{sync::atomic::{AtomicI32, Ordering}, thread, time::{Duration, Instant}
 
 use rand::{seq::IteratorRandom, Rng};
 
-use crate::{game::{BoardResult, BoardState, Game, Player}, mcts::mcts, minimax_expected_outcome, random_games};
+use crate::{game::{BoardResult, BoardState, Game, Player}, mcts::{mcts, Node}, minimax_expected_outcome, random_games};
 
 #[cfg(not(debug_assertions))]
 #[test]
@@ -162,15 +162,22 @@ fn mcts_vs_minimax_10() {
 }
 fn mcts_vs_minimax() -> BoardResult {
     let mut game = Game::new(Player::X);
+    let mut root = Node::new();
 
     loop {
         let result;
         if let Player::X = game.turn {
-            let (meta_move, mini_move) = mcts(&game, game.turn, 100, Duration::from_millis(500));
+            let (meta_move, mini_move) = mcts(&game, 100, Duration::from_millis(500), &mut root);
             result = game.place(meta_move, mini_move).unwrap();
+            root = root.take_move((meta_move, mini_move)).expect("mcts chose this");
         } else {
             let (_, meta_move, mini_move) = minimax_expected_outcome(0, 2, &game, game.turn, 1000);
             result = game.place(meta_move, mini_move).unwrap();
+            if root.has_children() {
+                root = root.take_move((meta_move, mini_move)).expect("this should have all possible moves as children")
+            } else {
+                root = Node::new();
+            }
         }
         match result {
             BoardState::Concluded(x) => {
@@ -185,16 +192,24 @@ fn mcts_vs_minimax() -> BoardResult {
 fn random_vs_mcts() -> BoardResult {
     let mut game = Game::new(Player::X);
     let mut rng = rand::thread_rng();
+    let mut root = Node::new();
 
     loop {
         let result;
         if let Player::X = game.turn {
-            let (meta_move, mini_move) = mcts(&game, game.turn, 100, Duration::from_millis(500));
+            let (meta_move, mini_move) = mcts(&game, 100, Duration::from_millis(500), &mut root);
             result = game.place(meta_move, mini_move).unwrap();
+            root = root.take_move((meta_move, mini_move)).expect("mcts chose this");
         } else {
-            let move_ = game.get_possible_moves().into_iter().choose(&mut rng).unwrap();
+            let move_ = *game.get_possible_moves().into_iter().choose(&mut rng).unwrap();
             result = game.place(move_.0, move_.1).unwrap();
+            if root.has_children() {
+                root = root.take_move(move_).expect("this should have all possible moves as children")
+            } else {
+                root = Node::new();
+            }
         }
+        
         match result {
             BoardState::Concluded(x) => {
                 return x

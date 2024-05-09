@@ -4,14 +4,14 @@ use std::{collections::HashMap, f64::consts::SQRT_2, time::{Duration, Instant}};
 use crate::{game::{BoardState, Game, Player, Position}, random_games};
 
 #[derive(Debug)]
-struct Node {
+pub struct Node {
     children: HashMap<Position, Node>,
     score: i64,
     simulations: u64
 }
 
 impl Node {
-    fn new() -> Node {
+    pub fn new() -> Node {
         Node {
             children: HashMap::new(),
             score: 0,
@@ -30,6 +30,12 @@ impl Node {
     fn average_score(&self) -> f64 {
         self.score as f64 / self.simulations as f64
     }
+    pub fn take_move(mut self, action: Position) -> Option<Node> {
+        self.children.remove(&action)
+    }
+    pub fn has_children(&self) -> bool {
+        !self.children.is_empty()
+    }
 }
 impl Default for Node {
     fn default() -> Self {
@@ -37,27 +43,27 @@ impl Default for Node {
     }
 }
 
-pub fn mcts(starting_board: &Game, player: Player, random_count: u32, thinking_time: Duration) -> Position {
+pub fn mcts(starting_board: &Game, random_count: u32, thinking_time: Duration, root: &mut Node) -> Position {
 
     let start = Instant::now();
-    let mut root = Node::new();
-
-    let mut moves = starting_board.get_possible_moves().into_iter();
-    for move_ in moves {
-        root.new_child(*move_)
+    if !root.has_children() {
+        let moves = starting_board.get_possible_moves().into_iter();
+        for move_ in moves {
+            root.new_child(*move_)
+        }
     }
 
 
     loop {
 
-        mcts_iteration(starting_board.clone(), &mut root, random_count);
+        mcts_iteration(starting_board.clone(), root, random_count);
 
         if start.elapsed() > thinking_time {
             break;
         }
     }
 
-    let result = root.children.into_iter()
+    let result = root.children.iter()
     .reduce(|max, next| {
         // println!("{:?} {} {}", next.0, next.1.average_score(), next.1.simulations);
         if max.1.average_score() < next.1.average_score() {
@@ -67,7 +73,7 @@ pub fn mcts(starting_board: &Game, player: Player, random_count: u32, thinking_t
         }
     }).unwrap();
     // println!("got an average score of {} with {} simulated games", result.1.average_score(), result.1.simulations);
-    result.0
+    *result.0
 
 }
 
@@ -75,7 +81,7 @@ const EXPLORATION_PARAMETER: f64 = 2f64; //SQRT_2;
 
 fn mcts_iteration(mut game: Game, node: &mut Node, random_count: u32) -> (i64, u64) {
 
-    if !node.children.is_empty() {
+    if node.has_children() {
         let mut max = (f64::NEG_INFINITY, ((0, 0), (0, 0)));
         for (action, child) in node.children.iter_mut() {
             let confidence = if node.simulations == 0 || child.simulations == 0 {

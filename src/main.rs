@@ -3,6 +3,8 @@ use std::{sync::atomic::{AtomicI32, Ordering}, thread, time::{Duration, Instant}
 use game::{BoardResult, BoardSpace, BoardState, Game, Player};
 use rand::{seq::IteratorRandom, Rng};
 
+use crate::mcts::Node;
+
 mod game;
 mod mcts;
 #[cfg(test)]
@@ -37,13 +39,15 @@ fn vs_mcts(thinking_time: Duration) {
 
     println!("You are X!");
     let mut game = Game::new(Player::random());
+    let mut root = Node::new();
 
     loop {
         println!("{game}");
         let result;
         if let Player::O = game.turn {
-            let (meta_move, mini_move) = mcts::mcts(&game, game.turn, 100, thinking_time);
+            let (meta_move, mini_move) = mcts::mcts(&game, 100, thinking_time, &mut root);
             result = game.place(meta_move, mini_move).unwrap();
+            root = root.take_move((meta_move, mini_move)).expect("mcts chose this");
         } else {
             let meta_move =
             loop {
@@ -89,9 +93,9 @@ fn vs_mcts(thinking_time: Duration) {
                     
                 }
             };
-
+            let mut mini_move;
             result = loop {
-                let mini_move = {
+                mini_move = {
                     (
                     loop {
                         
@@ -126,6 +130,12 @@ fn vs_mcts(thinking_time: Duration) {
                     continue
                 }
             };
+            if root.has_children() {
+                root = root.take_move((meta_move, mini_move)).expect("this should have all possible moves as children")
+            } else {
+                root = Node::new();
+            }
+            
         }
         match result {
             BoardState::Concluded(BoardResult::XWin) => {
