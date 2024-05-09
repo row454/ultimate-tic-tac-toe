@@ -9,6 +9,8 @@ pub struct Game {
     pub mini_boards: [[Board; 3]; 3],
     pub meta_board: [[BoardState; 3]; 3],
     pub next_meta_move: Option<(usize, usize)>,
+    pub board_state: BoardState,
+    pub turn: Player,
     empty_spaces : HashSet<Position>,
 }
 pub type Position = ((usize, usize), (usize, usize));
@@ -37,18 +39,16 @@ const ALL_SPACES: [Position; 81] = {
     result
 };
 
-impl Default for Game {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+
 impl Game {
-    pub fn new() -> Self {
+    pub fn new(starting_player: Player) -> Self {
         Game {
             mini_boards: [[Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()]],
             meta_board: [[BoardState::Ongoing; 3]; 3],
             next_meta_move: None,
-            empty_spaces: HashSet::from(ALL_SPACES)
+            turn: starting_player,
+            board_state: BoardState::Ongoing,
+            empty_spaces: HashSet::from(ALL_SPACES),
         }
     }
 
@@ -104,7 +104,7 @@ impl Game {
 
             BoardState::Ongoing
     }
-    pub fn place(&mut self, meta_pos: (usize, usize), mini_pos: (usize, usize), player: Player) -> Result<BoardState, InvalidMoveError> {
+    pub fn place(&mut self, meta_pos: (usize, usize), mini_pos: (usize, usize)) -> Result<BoardState, InvalidMoveError> {
         if let Some(next_meta_move) = self.next_meta_move {
             if next_meta_move != meta_pos {
                 return Err(InvalidMoveError)
@@ -115,7 +115,8 @@ impl Game {
         }
 
 
-        let mini_result = self.mini_boards[meta_pos.1][meta_pos.0].place(mini_pos, player)?;
+        let mini_result = self.mini_boards[meta_pos.1][meta_pos.0].place(mini_pos, self.turn)?;
+        self.turn = self.turn.switch();
         self.meta_board[meta_pos.1][meta_pos.0] = mini_result;
         assert!(self.empty_spaces.remove(&(meta_pos, mini_pos)));
 
@@ -127,7 +128,8 @@ impl Game {
         
         if let BoardState::Concluded(result) = mini_result {
             self.empty_spaces.retain(|(meta, _mini)| meta != &meta_pos);
-            return Ok(self.check_wins(meta_pos))
+            self.board_state = self.check_wins(meta_pos);
+            return Ok(self.board_state)
         }
 
         Ok(BoardState::Ongoing)
