@@ -1,0 +1,39 @@
+on: 
+ push:
+  branches:
+  - "master"
+
+jobs:
+ trunk-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+      - uses: jetli/trunk-action@v0.5.0
+      - run: trunk build --public-url .
+      - run: rm .gitignore
+      - run: touch dist/.nojekyll
+      - uses: rayluo/github-pages-overwriter@v1.3
+
+        with:
+
+          # Optional.
+          #
+          # Default value "." means the root directory of your project will be published.
+          #
+          # You can use whatever directory your project uses,
+          # for example "wwwroot" (without leading "./").
+          # Such a directory does *not* have to already exist in your repo,
+          # it could be an output directory created dynamically
+          # by your static website builder.
+          source-directory: dist
+
+          # Optional. Default value "gh-pages".
+          # It specifies the temporary branch which hosts the static website.
+          # Each build will OVERWRITE this branch.
+          target-branch: gh-pages
