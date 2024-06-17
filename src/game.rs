@@ -1,11 +1,14 @@
 use core::fmt;
-use std::{collections::HashSet, default};
+use std::{borrow::BorrowMut, collections::HashSet, default, mem, rc::Rc, sync::Arc, time::Duration};
 
 use rand::{seq::IteratorRandom, thread_rng};
 
+use crate::ai::{mcts::mcts, minimax_expected_outcome, mcts::Node};
+
+pub type Position = ((usize, usize), (usize, usize));
 
 #[derive(Clone)]
-pub struct Game {
+pub struct GameState {
     pub mini_boards: [[Board; 3]; 3],
     pub meta_board: [[BoardState; 3]; 3],
     pub next_meta_move: Option<(usize, usize)>,
@@ -13,7 +16,64 @@ pub struct Game {
     pub turn: Player,
     empty_spaces : HashSet<Position>,
 }
-pub type Position = ((usize, usize), (usize, usize));
+pub struct Game {
+    pub state: GameState,
+    x: PlayerType,
+    o: PlayerType,
+}
+impl Game {
+    pub fn new(starting_player: Player, x: PlayerType, o: PlayerType) -> Self {
+        let mut game = Game {
+            state: GameState {
+            mini_boards: [[Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()]],
+            meta_board: [[BoardState::Ongoing; 3]; 3],
+            next_meta_move: None,
+            turn: starting_player,
+            board_state: BoardState::Ongoing,
+            empty_spaces: HashSet::from(ALL_SPACES),
+            },
+            x,
+            o,
+        };
+        #[cfg(feature = "cli")]
+        println!("X: {:?}, O: {:?}", game.x, game.o);
+        game.next_move();
+        game
+    }
+    pub fn place(&mut self, meta_pos: (usize, usize), mini_pos: (usize, usize)) -> Result<BoardState, InvalidMoveError> {
+        if let PlayerType::Mcts{root, ..} = &mut self.x {
+            root.take_move((meta_pos, mini_pos));
+        }
+        if let PlayerType::Mcts{root, ..} = &mut self.o {
+            root.take_move((meta_pos, mini_pos));
+        }
+        let result = self.state.place(meta_pos, mini_pos)?;
+        if matches!(result, BoardState::Concluded(_)) {
+            return Ok(result);
+        }
+        Ok(self.next_move())
+    }
+    fn next_move(&mut self) -> BoardState {
+        #[cfg(feature = "cli")]
+        println!("{}", self.state);
+
+        match match self.state.turn {
+            Player::X => &mut self.x,
+            Player::O => &mut self.o,
+        } {
+            PlayerType::Local => self.state.board_state,
+            PlayerType::Mcts { ref mut root, thinking_time } => {
+                let (meta_move, mini_move) = mcts(&self.state, 100, *thinking_time, root);
+                self.place(meta_move, mini_move).unwrap()
+            },
+            PlayerType::Minmax => {
+                let (_, meta_move, mini_move) = minimax_expected_outcome(0, 1, &self.state, self.state.turn, 1000);
+                self.place(meta_move, mini_move).unwrap()
+            },
+        }
+    }
+}
+
 const ALL_SPACES: [Position; 81] = {
     let mut pairs = [(0, 0); 9];
     let mut i = 0;
@@ -40,9 +100,9 @@ const ALL_SPACES: [Position; 81] = {
 };
 
 
-impl Game {
+impl GameState {
     pub fn new(starting_player: Player) -> Self {
-        Game {
+        GameState {
             mini_boards: [[Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()], [Board::new(), Board::new(), Board::new()]],
             meta_board: [[BoardState::Ongoing; 3]; 3],
             next_meta_move: None,
@@ -147,7 +207,8 @@ impl Game {
 }
 #[derive(Debug)]
 pub struct InvalidMoveError;
-impl fmt::Display for Game {
+
+impl fmt::Display for GameState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for meta_y in 0..=2 {
             for mini_y in 0..=2 {
@@ -171,7 +232,7 @@ impl fmt::Display for Game {
         Ok(())
     }
 }
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Board {
     pub board: [[BoardSpace; 3]; 3],
     x_count: u32,
@@ -233,7 +294,7 @@ impl Board {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Player {
     X = 1,
     O = -1
@@ -252,21 +313,30 @@ impl Player {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum BoardSpace {
     Empty,
     Taken(Player)
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BoardResult {
     XWin = 1,
     Tie = 0,
     OWin = -1
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BoardState {
     Ongoing,
     Concluded(BoardResult)
+}
+#[derive(Debug)]
+pub enum PlayerType {
+    Local,
+    Mcts {
+        root: Node,
+        thinking_time: Duration
+    },
+    Minmax
 }

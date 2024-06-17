@@ -1,7 +1,10 @@
 use std::{collections::HashMap, f64::consts::SQRT_2, time::{Duration, Instant}};
 
 
-use crate::{game::{BoardState, Game, Player, Position}, random_games};
+use crate::game::{BoardState, GameState, Player, Position};
+
+use super::random_games;
+
 
 #[derive(Debug)]
 pub struct Node {
@@ -30,8 +33,10 @@ impl Node {
     fn average_score(&self) -> f64 {
         self.score as f64 / self.simulations as f64
     }
-    pub fn take_move(mut self, action: Position) -> Option<Node> {
-        self.children.remove(&action)
+    pub fn take_move(&mut self, action: Position) -> Option<()> {
+        let child = self.children.remove(&action)?;
+        *self = child;
+        Some(())
     }
     pub fn has_children(&self) -> bool {
         !self.children.is_empty()
@@ -43,7 +48,7 @@ impl Default for Node {
     }
 }
 
-pub fn mcts(starting_board: &Game, random_count: u32, thinking_time: Duration, root: &mut Node) -> Position {
+pub fn mcts(starting_board: &GameState, random_count: u32, thinking_time: Duration, root: &mut Node) -> Position {
 
     let start = Instant::now();
     if !root.has_children() {
@@ -79,7 +84,7 @@ pub fn mcts(starting_board: &Game, random_count: u32, thinking_time: Duration, r
 
 const EXPLORATION_PARAMETER: f64 = 2f64; //SQRT_2;
 
-fn mcts_iteration(mut game: Game, node: &mut Node, random_count: u32) -> (i64, u64) {
+fn mcts_iteration(mut game: GameState, node: &mut Node, random_count: u32) -> (i64, u64) {
 
     if node.has_children() {
         let mut max = (f64::NEG_INFINITY, ((0, 0), (0, 0)));
