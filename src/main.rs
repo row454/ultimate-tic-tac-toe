@@ -18,49 +18,74 @@ fn main() {
 
 #[cfg(not(feature = "cli"))]
 fn main() {
-    yew::Renderer::<App>::new().render();
+    yew::Renderer::<Game>::new().render();
 }
+pub enum GameAction {
+    Place(game::Position)
+}
+impl Component for Game {
+    type Message = GameAction;
+    type Properties = ();
 
-#[function_component(App)]
-fn app() -> Html {
-    
-    let game = use_state(|| RwLock::from(Game::new(Player::random(), PlayerType::Local, PlayerType::Local)));
-    let update = use_force_update();
-    let game_html = {
-        
-        game.read().unwrap()
-        .state.mini_boards.iter().flatten()
-        .zip(game.read().unwrap()
-            .state.meta_board.iter().flatten())
-        .enumerate()
-        .map(|(i, (b, s))| {
-                let game_clone = game.clone();
-                html! {
-                    <MiniBoard 
-                    board={b.clone()} 
-                    state={*s} 
-                    place={
-                       let update = update.clone();
-                        Callback::from(move |pos| {
-                        
-                        let result = game_clone.try_write().unwrap().place((i%3, i/3),  pos);
-                        update.force_update();
-                        result
-                    })
-                    } 
-                    is_active={
-                        game.read().unwrap().state.next_meta_move.map(|pos| pos == (i%3, i/3)).unwrap_or(true) && matches!(s, BoardState::Ongoing)
+    fn create(ctx: &Context<Self>) -> Self {
+        Game::new(Player::random(), PlayerType::Local, PlayerType::Local)
+    }
+    fn view(&self, ctx: &Context<Self>) -> Html {
+
+        let game_html = {
+            self.state.mini_boards.iter().flatten()
+            .zip(self.state.meta_board.iter().flatten())
+            .enumerate()
+            .map(|(i, (b, s))| {
+                    html! {
+                        <MiniBoard
+                        board={b.clone()} 
+                        state={*s} 
+                        place={
+                            ctx.link().callback(move |pos| GameAction::Place(((i%3, i/3),  pos)))
+                        } 
+                        is_active={
+                            self.state.next_meta_move.map(move |pos| pos == (i%3, i/3)).unwrap_or(true) && matches!(s, BoardState::Ongoing)
+                        }
+                        />
                     }
-                    />
+                }
+            )
+            .collect::<Html>()
+        };
+        let mut class = String::from("meta-board");
+        if matches!(self.state.board_state, BoardState::Concluded(_)) {
+            class.push_str(" concluded");
+        }
+        html! {
+            <div class="outer-meta-board">
+            {
+                match self.state.board_state {
+                    BoardState::Ongoing => html!{},
+                    BoardState::Concluded(result) => {
+                        match result {
+                            game::BoardResult::XWin => html!{<img class="overlayed-result" src="x.svg"/>},
+                            game::BoardResult::OWin => html!{<img class="overlayed-result" src="o.svg"/>},
+                            game::BoardResult::Tie => html!{}
+                        }
+                    }
                 }
             }
-        )
-        .collect::<Html>()
-    };
-    html! {
-        <div class="meta-board">
-            {game_html}
+                
+            <div class={class}>
+                {game_html}
+            </div>
         </div>
+            
+        }
+    }
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            GameAction::Place(pos) => {
+                self.place(pos.0, pos.1).expect("it should not be possible to send an incorrect message!");
+                true
+            }
+        }
     }
 }
 
@@ -68,7 +93,7 @@ fn app() -> Html {
 struct MiniBoardProps {
     board: Board,
     state: BoardState,
-    place: Callback<(usize, usize), Result<BoardState, InvalidMoveError>>,
+    place: Callback<(usize, usize)>,
     is_active: bool
 }
 
