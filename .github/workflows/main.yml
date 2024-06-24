@@ -1,10 +1,10 @@
 on: 
- push:
-  branches:
-  - "master"
+  push:
+    branches:
+    - "master"
 
 jobs:
- trunk-build:
+  trunk-build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -15,6 +15,7 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
       - uses: jetli/trunk-action@v0.5.0
+      - uses: Swatinem/rust-cache@v2.7.3
       - run: trunk build --public-url .
       - run: rm .gitignore
       - run: touch dist/.nojekyll

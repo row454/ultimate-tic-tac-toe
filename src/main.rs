@@ -118,11 +118,29 @@ fn mini_board(MiniBoardProps {board, state, place, is_active} : &MiniBoardProps)
         }
     }).collect::<Html>();
 
-    let class = String::from("mini-board");
+    let mut class = String::from("mini-board");
+    if matches!(state, BoardState::Concluded(_)) {
+        class.push_str(" concluded")
+    }
 
     html ! {
-        <div class={class}>
-            {tiles}
+        <div class="outer-mini-board">
+            {
+                match state {
+                    BoardState::Ongoing => html!{},
+                    BoardState::Concluded(result) => {
+                        match result {
+                            game::BoardResult::XWin => html!{<img class="overlayed-result" src="x.svg"/>},
+                            game::BoardResult::OWin => html!{<img class="overlayed-result" src="o.svg"/>},
+                            game::BoardResult::Tie => html!{}
+                        }
+                    }
+                }
+            }
+                
+            <div class={class}>
+                {tiles}
+            </div>
         </div>
     }
 }
