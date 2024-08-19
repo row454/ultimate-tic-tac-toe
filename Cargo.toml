@@ -1,12 +1,17 @@
 [package]
 name = "ultimate-tic-tac-toe"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["row454 <rowanhope5@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
+console_error_panic_hook = "0.1.7"
 futures = "0.3.30"
+leptos = { version = "0.6.14", features = ["csr", "nightly"] }
+leptos_workers = "0.2.2"
 rand = { version = "0.8.5", features = ["small_rng"] }
+
+serde = { version = "1.0.208", features = ["derive"] }
+wasm-bindgen = "0.2.93"
+web-sys = "0.3.70"
 web-time = "1.1.0"
-yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
-yew-agent = "0.3.0"

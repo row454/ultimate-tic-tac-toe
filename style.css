@@ -32,12 +32,20 @@ div {
   height: 50vh;
   transform: translateY(25vh);
 }
-.board-space.active:hover {
+.board-space:hover {
   cursor: pointer;
 }
 .board-space.inactive {
   background-color: #d1d1d1;
+  pointer-events: none;
 }
+.board-space.taken {
+  pointer-events: none;
+}
+.board-space.inactive:hover {
+  cursor: default;
+}
+
 img {
   display: block;
   max-width: 100%;

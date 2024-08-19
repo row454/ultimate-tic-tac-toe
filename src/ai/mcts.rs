@@ -1,4 +1,6 @@
-use std::{collections::HashMap, f64::consts::SQRT_2, time::{Duration, Instant}};
+use std::{collections::HashMap, f64::consts::SQRT_2, };
+use leptos::logging::log;
+use web_time::{Duration, Instant};
 
 
 use crate::game::{BoardState, GameState, Player, Position};
@@ -9,11 +11,19 @@ use super::random_games;
 #[derive(Debug)]
 pub struct Node {
     children: HashMap<Position, Node>,
-    score: i64,
-    simulations: u64
+    pub score: i64,
+    pub simulations: u64
 }
 
 impl Node {
+    pub fn count_descendants(&self) -> i32 {
+        let mut count = 0;
+        for node in self.children.values() {
+            count += 1;
+            count += node.count_descendants();
+        }
+        count
+    }
     pub fn new() -> Node {
         Node {
             children: HashMap::new(),
@@ -33,8 +43,8 @@ impl Node {
     fn average_score(&self) -> f64 {
         self.score as f64 / self.simulations as f64
     }
-    pub fn take_move(&mut self, action: Position) -> () {
-        if let Some(child) = self.children.remove(&action) {;
+    pub fn take_move(&mut self, action: Position) {
+        if let Some(child) = self.children.remove(&action) {
             *self = child;
         }
     }
@@ -60,7 +70,7 @@ pub fn mcts(starting_board: &GameState, random_count: u32, thinking_time: Durati
 
 
     loop {
-
+        log!("test");
         mcts_iteration(starting_board.clone(), root, random_count);
 
         if start.elapsed() > thinking_time {
@@ -111,7 +121,7 @@ fn mcts_iteration(mut game: GameState, node: &mut Node, random_count: u32) -> (i
         (-node.score, node.simulations)
     } else if node.simulations == 0 {
         
-        let result = random_games(random_count, 10, &game);
+        let result = random_games(random_count, 1, &game);
         let score = (result.0 - result.1) * game.turn.switch() as i32;
 
         node.score += score as i64;

@@ -2,14 +2,13 @@ use core::fmt;
 use std::{borrow::BorrowMut, collections::HashSet, default, fmt::Debug, mem, rc::Rc, sync::Arc, time::Duration};
 
 use rand::{seq::IteratorRandom, thread_rng};
-use yew::Hook;
-use yew_agent::reactor::UseReactorBridgeHandle;
+use serde::{Deserialize, Serialize};
 
-use crate::ai::{mcts::{mcts, Node}, mcts_agent::MctsReactor, minimax_expected_outcome};
+use crate::ai::{mcts::{mcts, Node}, minimax_expected_outcome};
 
 pub type Position = ((usize, usize), (usize, usize));
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct GameState {
     pub mini_boards: [[Board; 3]; 3],
     pub meta_board: [[BoardState; 3]; 3],
@@ -18,6 +17,7 @@ pub struct GameState {
     pub turn: Player,
     empty_spaces : HashSet<Position>,
 }
+#[derive(Clone)]
 pub struct Game {
     pub state: GameState,
     pub x: PlayerType,
@@ -199,7 +199,7 @@ impl fmt::Display for GameState {
         Ok(())
     }
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Board {
     pub board: [[BoardSpace; 3]; 3],
     x_count: u32,
@@ -261,7 +261,7 @@ impl Board {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Player {
     X = 1,
     O = -1
@@ -280,25 +280,26 @@ impl Player {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BoardSpace {
     Empty,
     Taken(Player)
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum BoardResult {
     XWin = 1,
     Tie = 0,
     OWin = -1
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum BoardState {
     Ongoing,
     Concluded(BoardResult)
 }
 
+#[derive(Clone)]
 pub enum PlayerType {
     Local,
     Mcts,
