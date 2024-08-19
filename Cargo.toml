@@ -5,9 +5,8 @@ authors = ["row454 <rowanhope5@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+futures = "0.3.30"
 rand = { version = "0.8.5", features = ["small_rng"] }
+web-time = "1.1.0"
 yew = { git = "https://github.com/yewstack/yew/", features = ["csr"] }
-
-[features]
-default = []
-cli = []
+yew-agent = "0.3.0"

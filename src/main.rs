@@ -2,21 +2,14 @@
 use std::{panic::panic_any, result, sync::{Mutex, RwLock}};
 
 
+use ai::mcts_agent::MctsInput;
 use game::{Board, BoardState, Game, GameState, InvalidMoveError, Player, PlayerType};
 use yew::prelude::*;
+use yew_agent::reactor::{use_reactor_bridge, ReactorEvent};
 
 mod game;
 mod ai;
 
-#[cfg(feature = "cli")]
-mod cli;
-
-#[cfg(feature = "cli")]
-fn main() {
-    cli::main();
-}
-
-#[cfg(not(feature = "cli"))]
 fn main() {
     yew::Renderer::<Game>::new().render();
 }
@@ -32,7 +25,7 @@ impl Component for Game {
     }
     fn view(&self, ctx: &Context<Self>) -> Html {
 
-        let game_html = {
+        let game_html = {   
             self.state.mini_boards.iter().flatten()
             .zip(self.state.meta_board.iter().flatten())
             .enumerate()
@@ -45,7 +38,12 @@ impl Component for Game {
                             ctx.link().callback(move |pos| GameAction::Place(((i%3, i/3),  pos)))
                         } 
                         is_active={
-                            self.state.next_meta_move.map(move |pos| pos == (i%3, i/3)).unwrap_or(true) && matches!(s, BoardState::Ongoing)
+                            self.state.next_meta_move.map(move |pos| pos == (i%3, i/3)).unwrap_or(true) 
+                            && matches!(s, BoardState::Ongoing) 
+                            && matches!(match self.state.turn {
+                                Player::X => &self.x,
+                                Player::O => &self.o,
+                            }, PlayerType::Local)
                         }
                         />
                     }
@@ -53,10 +51,13 @@ impl Component for Game {
             )
             .collect::<Html>()
         };
+
         let mut class = String::from("meta-board");
+
         if matches!(self.state.board_state, BoardState::Concluded(_)) {
             class.push_str(" concluded");
         }
+
         html! {
             <div class="outer-meta-board">
             {
@@ -79,10 +80,21 @@ impl Component for Game {
             
         }
     }
+
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             GameAction::Place(pos) => {
-                self.place(pos.0, pos.1).expect("it should not be possible to send an incorrect message!");
+                self.state.place(pos.0, pos.1).expect("it should not be possible to send an incorrect message!");
+                match match self.state.turn {
+                    Player::X => &mut self.x,
+                    Player::O => &mut self.o,
+                } {
+                    PlayerType::Local => (),
+                    PlayerType::Mcts => {
+                    },
+                    PlayerType::Minmax => {
+                    },
+                }
                 true
             }
         }
@@ -116,7 +128,6 @@ fn mini_board(MiniBoardProps {board, state, place, is_active} : &MiniBoardProps)
                         onclick={ 
                             Callback::from(move |_| {
                                 place.emit((i%3, i/3)); 
-                                use_force_update();
                             })
                         }
                     />

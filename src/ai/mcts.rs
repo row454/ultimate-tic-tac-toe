@@ -33,10 +33,10 @@ impl Node {
     fn average_score(&self) -> f64 {
         self.score as f64 / self.simulations as f64
     }
-    pub fn take_move(&mut self, action: Position) -> Option<()> {
-        let child = self.children.remove(&action)?;
-        *self = child;
-        Some(())
+    pub fn take_move(&mut self, action: Position) -> () {
+        if let Some(child) = self.children.remove(&action) {;
+            *self = child;
+        }
     }
     pub fn has_children(&self) -> bool {
         !self.children.is_empty()

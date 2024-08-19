@@ -1,9 +1,11 @@
 use core::fmt;
-use std::{borrow::BorrowMut, collections::HashSet, default, mem, rc::Rc, sync::Arc, time::Duration};
+use std::{borrow::BorrowMut, collections::HashSet, default, fmt::Debug, mem, rc::Rc, sync::Arc, time::Duration};
 
 use rand::{seq::IteratorRandom, thread_rng};
+use yew::Hook;
+use yew_agent::reactor::UseReactorBridgeHandle;
 
-use crate::ai::{mcts::mcts, minimax_expected_outcome, mcts::Node};
+use crate::ai::{mcts::{mcts, Node}, mcts_agent::MctsReactor, minimax_expected_outcome};
 
 pub type Position = ((usize, usize), (usize, usize));
 
@@ -18,8 +20,8 @@ pub struct GameState {
 }
 pub struct Game {
     pub state: GameState,
-    x: PlayerType,
-    o: PlayerType,
+    pub x: PlayerType,
+    pub o: PlayerType,
 }
 impl Game {
     pub fn new(starting_player: Player, x: PlayerType, o: PlayerType) -> Self {
@@ -35,42 +37,7 @@ impl Game {
             x,
             o,
         };
-        #[cfg(feature = "cli")]
-        println!("X: {:?}, O: {:?}", game.x, game.o);
-        game.next_move();
         game
-    }
-    pub fn place(&mut self, meta_pos: (usize, usize), mini_pos: (usize, usize)) -> Result<BoardState, InvalidMoveError> {
-        if let PlayerType::Mcts{root, ..} = &mut self.x {
-            root.take_move((meta_pos, mini_pos));
-        }
-        if let PlayerType::Mcts{root, ..} = &mut self.o {
-            root.take_move((meta_pos, mini_pos));
-        }
-        let result = self.state.place(meta_pos, mini_pos)?;
-        if matches!(result, BoardState::Concluded(_)) {
-            return Ok(result);
-        }
-        Ok(self.next_move())
-    }
-    fn next_move(&mut self) -> BoardState {
-        #[cfg(feature = "cli")]
-        println!("{}", self.state);
-
-        match match self.state.turn {
-            Player::X => &mut self.x,
-            Player::O => &mut self.o,
-        } {
-            PlayerType::Local => self.state.board_state,
-            PlayerType::Mcts { ref mut root, thinking_time } => {
-                let (meta_move, mini_move) = mcts(&self.state, 100, *thinking_time, root);
-                self.place(meta_move, mini_move).unwrap()
-            },
-            PlayerType::Minmax => {
-                let (_, meta_move, mini_move) = minimax_expected_outcome(0, 1, &self.state, self.state.turn, 1000);
-                self.place(meta_move, mini_move).unwrap()
-            },
-        }
     }
 }
 
@@ -331,12 +298,18 @@ pub enum BoardState {
     Ongoing,
     Concluded(BoardResult)
 }
-#[derive(Debug)]
+
 pub enum PlayerType {
     Local,
-    Mcts {
-        root: Node,
-        thinking_time: Duration
-    },
+    Mcts,
     Minmax
+}
+impl std::fmt::Debug for PlayerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Local => write!(f, "Local"),
+            Self::Mcts => write!(f, "Mcts"),
+            Self::Minmax => write!(f, "Minmax"),
+        }
+    }
 }

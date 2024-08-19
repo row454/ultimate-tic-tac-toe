@@ -5,6 +5,7 @@ use crate::game::{BoardResult, BoardState, Player, GameState};
 
 
 pub mod mcts;
+pub mod mcts_agent;
 
 pub fn minimax_expected_outcome(depth: u32, limit: u32, game: &GameState, player: Player, random_count: u32) -> (i32, (usize, usize), (usize, usize)) {
     let before = Instant::now();
