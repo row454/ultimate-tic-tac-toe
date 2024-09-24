@@ -1,12 +1,19 @@
 use core::fmt;
 use std::{borrow::BorrowMut, collections::HashSet, default, fmt::Debug, mem, rc::Rc, sync::Arc, time::Duration};
+use nohash_hasher::BuildNoHashHasher
 
 use rand::{seq::IteratorRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::ai::{mcts::{mcts, Node}, minimax_expected_outcome};
-
-pub type Position = ((usize, usize), (usize, usize));
+#[derive(Copy, Clone, Serialize, Deserialize)]
+pub struct Position((usize, usize), (usize, usize))
+impl nohash_hasher::IsEnabled for Position {}
+impl Hash for Position {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u8((self.0.0 << 6 | self.0.1 << 4 | self.1.0 || << 2 | self.1.1) as u8)
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct GameState {
@@ -15,7 +22,7 @@ pub struct GameState {
     pub next_meta_move: Option<(usize, usize)>,
     pub board_state: BoardState,
     pub turn: Player,
-    empty_spaces : HashSet<Position>,
+    empty_spaces : HashSet<Position, BuildNoHashHasher<Position>>,
 }
 #[derive(Clone)]
 pub struct Game {
@@ -32,7 +39,7 @@ impl Game {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: HashSet::from(ALL_SPACES),
+            empty_spaces: HashSet::from_iter(ALL_SPACES),
             },
             x,
             o,
@@ -45,7 +52,7 @@ const ALL_SPACES: [Position; 81] = {
     let mut pairs = [(0, 0); 9];
     let mut i = 0;
     let mut j = 0;
-    let mut result = [((0, 0), (0, 0)); 81];
+    let mut result = [Position; 81];
     while i < 3 {
         j = 0;
         while j < 3 {
@@ -58,7 +65,7 @@ const ALL_SPACES: [Position; 81] = {
     while i < 9 {
         let mut j = 0;
         while j < 9 {
-            result[i*9+j] = (pairs[i], pairs[j]);
+            result[i*9+j] = Position(pairs[i], pairs[j]);
             j += 1
         }
         i += 1
@@ -75,7 +82,7 @@ impl GameState {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: HashSet::from(ALL_SPACES),
+            empty_spaces: HashSet::<Position, BuildNoHashHasher<Position>>::from_iter(ALL_SPACES)),
         }
     }
 
@@ -162,11 +169,11 @@ impl GameState {
         Ok(BoardState::Ongoing)
     }
 
-    pub fn get_possible_moves(&self)  -> HashSet<&Position> {
+    pub fn get_possible_moves(&self)  -> HashSet<Position, BuildNoHashHasher<Position> {
         if let Some(meta_move) = self.next_meta_move {
             let moves = self.empty_spaces
             .iter()
-            .filter(|(meta, _mini)| meta == &meta_move).collect();
+            .filter(|Position(meta, _mini)| meta == &meta_move).map(|x| *x).collect();
             return moves
         }
         return self.empty_spaces.iter().collect();
