@@ -1,7 +1,7 @@
 use std::{collections::HashMap, f64::consts::SQRT_2, };
 use leptos::logging::log;
 use web_time::{Duration, Instant};
-use nohash_hasher::BuildNoHashHasher
+use nohash_hasher::BuildNoHashHasher;
 
 
 use crate::game::{BoardState, GameState, Player, Position};

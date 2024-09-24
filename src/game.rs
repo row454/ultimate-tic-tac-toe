@@ -1,17 +1,18 @@
 use core::fmt;
 use std::{borrow::BorrowMut, collections::HashSet, default, fmt::Debug, mem, rc::Rc, sync::Arc, time::Duration};
-use nohash_hasher::BuildNoHashHasher
-
+use nohash_hasher::BuildNoHashHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
 use rand::{seq::IteratorRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::ai::{mcts::{mcts, Node}, minimax_expected_outcome};
 #[derive(Copy, Clone, Serialize, Deserialize)]
-pub struct Position((usize, usize), (usize, usize))
+pub struct Position(pub (usize, usize), pub (usize, usize));
 impl nohash_hasher::IsEnabled for Position {}
 impl Hash for Position {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u8((self.0.0 << 6 | self.0.1 << 4 | self.1.0 || << 2 | self.1.1) as u8)
+        state.write_u8((self.0.0 << 6 | self.0.1 << 4 | self.1.0 << 2 | self.1.1) as u8)
     }
 }
 
@@ -169,7 +170,7 @@ impl GameState {
         Ok(BoardState::Ongoing)
     }
 
-    pub fn get_possible_moves(&self)  -> HashSet<Position, BuildNoHashHasher<Position> {
+    pub fn get_possible_moves(&self)  -> HashSet<Position, BuildNoHashHasher<Position>> {
         if let Some(meta_move) = self.next_meta_move {
             let moves = self.empty_spaces
             .iter()
