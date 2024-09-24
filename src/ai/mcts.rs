@@ -27,14 +27,14 @@ impl Node {
     }
     pub fn new() -> Node {
         Node {
-            children: HashMap::new(),
+            children: HashMap::<Position, Node, BuildNoHashHasher<Position>>::new(),
             score: 0,
             simulations: 0
         }
     }
     fn new_child(&mut self, action: Position) {
         let child = Node {
-            children: HashMap::new(),
+            children: HashMap::<Position, Node, BuildNoHashHasher<Position>>::new(),
             score: 0,
             simulations: 0
         };

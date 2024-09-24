@@ -7,7 +7,7 @@ use rand::{seq::IteratorRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::ai::{mcts::{mcts, Node}, minimax_expected_outcome};
-#[derive(Copy, Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone, Serialize, Deserialize, Eq, Partial, Debug)]
 pub struct Position(pub (usize, usize), pub (usize, usize));
 impl nohash_hasher::IsEnabled for Position {}
 impl Hash for Position {
@@ -162,7 +162,7 @@ impl GameState {
         }
         
         if let BoardState::Concluded(result) = mini_result {
-            self.empty_spaces.retain(|(meta, _mini)| meta != &meta_pos);
+            self.empty_spaces.retain(|Position(meta, _mini)| meta != &meta_pos);
             self.board_state = self.check_wins(meta_pos);
             return Ok(self.board_state)
         }
@@ -177,7 +177,7 @@ impl GameState {
             .filter(|Position(meta, _mini)| meta == &meta_move).map(|x| *x).collect();
             return moves
         }
-        return self.empty_spaces.iter().collect();
+        return self.empty_spaces.iter().map(|x| *x).collect();
     }
 }
 #[derive(Debug)]
