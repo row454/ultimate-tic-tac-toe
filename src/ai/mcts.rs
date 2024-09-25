@@ -97,8 +97,6 @@ const EXPLORATION_PARAMETER: f64 = 2f64; //SQRT_2;
 
 fn mcts_iteration(mut game: GameState, node: &mut Node, random_count: u32) -> (i64, u64) {
     let start = Instant::now();
-    while start.elapsed() < Duration::from_millis(10) {
-    }
     if node.has_children() {
         let mut max = (f64::NEG_INFINITY, Position((0, 0), (0, 0)));
         for (action, child) in node.children.iter_mut() {
