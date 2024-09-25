@@ -92,7 +92,7 @@ pub fn mcts(starting_board: &GameState, random_count: u32, thinking_time: Durati
 
 }
 
-const EXPLORATION_PARAMETER: f64 = 2f64; //SQRT_2;
+const EXPLORATION_PARAMETER: f64 = 20f64; //SQRT_2;
 
 fn mcts_iteration(mut game: GameState, node: &mut Node, random_count: u32) -> (i64, u64) {
     let start = Instant::now();
