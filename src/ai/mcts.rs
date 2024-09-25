@@ -71,7 +71,6 @@ pub fn mcts(starting_board: &GameState, random_count: u32, thinking_time: Durati
 
 
     loop {
-        log!("test");
         mcts_iteration(starting_board.clone(), root, random_count);
 
         if start.elapsed() > thinking_time {
