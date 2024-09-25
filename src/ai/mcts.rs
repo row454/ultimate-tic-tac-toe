@@ -27,14 +27,14 @@ impl Node {
     }
     pub fn new() -> Node {
         Node {
-            children: HashMap::<Position, Node, BuildNoHashHasher<Position>>::new(),
+            children: HashMap::with_hasher(BuildNoHashHasher::default()),
             score: 0,
             simulations: 0
         }
     }
     fn new_child(&mut self, action: Position) {
         let child = Node {
-            children: HashMap::<Position, Node, BuildNoHashHasher<Position>>::new(),
+            children: HashMap::with_hasher(BuildNoHashHasher::default()),
             score: 0,
             simulations: 0
         };
@@ -65,7 +65,7 @@ pub fn mcts(starting_board: &GameState, random_count: u32, thinking_time: Durati
     if !root.has_children() {
         let moves = starting_board.get_possible_moves().into_iter();
         for move_ in moves {
-            root.new_child(*move_)
+            root.new_child(move_)
         }
     }
 
@@ -98,7 +98,7 @@ const EXPLORATION_PARAMETER: f64 = 2f64; //SQRT_2;
 fn mcts_iteration(mut game: GameState, node: &mut Node, random_count: u32) -> (i64, u64) {
 
     if node.has_children() {
-        let mut max = (f64::NEG_INFINITY, ((0, 0), (0, 0)));
+        let mut max = (f64::NEG_INFINITY, Position((0, 0), (0, 0)));
         for (action, child) in node.children.iter_mut() {
             let confidence = if node.simulations == 0 || child.simulations == 0 {
                 f64::INFINITY
@@ -130,9 +130,9 @@ fn mcts_iteration(mut game: GameState, node: &mut Node, random_count: u32) -> (i
         (-score as i64, random_count as u64)
     } else {
         let mut moves = game.get_possible_moves().into_iter();
-        let first = *moves.next().unwrap();
+        let first = moves.next().unwrap();
         for move_ in moves {
-            node.new_child(*move_)
+            node.new_child(move_)
         }
         node.new_child(first);
 

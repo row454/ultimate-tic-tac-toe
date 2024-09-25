@@ -7,7 +7,7 @@ use rand::{seq::IteratorRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::ai::{mcts::{mcts, Node}, minimax_expected_outcome};
-#[derive(Copy, Clone, Serialize, Deserialize, Eq, Partial, Debug)]
+#[derive(Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Debug)]
 pub struct Position(pub (usize, usize), pub (usize, usize));
 impl nohash_hasher::IsEnabled for Position {}
 impl Hash for Position {
@@ -53,7 +53,7 @@ const ALL_SPACES: [Position; 81] = {
     let mut pairs = [(0, 0); 9];
     let mut i = 0;
     let mut j = 0;
-    let mut result = [Position; 81];
+    let mut result = [Position((0, 0), (0, 0)); 81];
     while i < 3 {
         j = 0;
         while j < 3 {
@@ -67,9 +67,9 @@ const ALL_SPACES: [Position; 81] = {
         let mut j = 0;
         while j < 9 {
             result[i*9+j] = Position(pairs[i], pairs[j]);
-            j += 1
+            j += 1;
         }
-        i += 1
+        i += 1;
     }
     result
 };
@@ -153,7 +153,7 @@ impl GameState {
         let mini_result = self.mini_boards[meta_pos.1][meta_pos.0].place(mini_pos, self.turn)?;
         self.turn = self.turn.switch();
         self.meta_board[meta_pos.1][meta_pos.0] = mini_result;
-        assert!(self.empty_spaces.remove(&(meta_pos, mini_pos)));
+        assert!(self.empty_spaces.remove(&Position(meta_pos, mini_pos)));
 
         if let BoardState::Ongoing = self.meta_board[mini_pos.1][mini_pos.0] {
             self.next_meta_move = Some(mini_pos);
