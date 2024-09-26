@@ -23,7 +23,7 @@ pub struct GameState {
     pub next_meta_move: Option<(usize, usize)>,
     pub board_state: BoardState,
     pub turn: Player,
-    empty_spaces : HashSet<Position, BuildNoHashHasher<Position>>,
+    empty_spaces : Vec<Position>,
 }
 #[derive(Clone)]
 pub struct Game {
@@ -40,7 +40,7 @@ impl Game {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: HashSet::from_iter(ALL_SPACES),
+            empty_spaces: ALL_SPACES.into_vec(),
             },
             x,
             o,
@@ -83,7 +83,7 @@ impl GameState {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: HashSet::from_iter(ALL_SPACES),
+            empty_spaces: ALL_SPACES.into_vec,
         }
     }
 
