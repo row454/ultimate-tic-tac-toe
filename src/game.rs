@@ -170,7 +170,7 @@ impl GameState {
         Ok(BoardState::Ongoing)
     }
 
-    pub fn get_possible_moves(&self)  -> HashSet<Position, BuildNoHashHasher<Position>> {
+    pub fn get_possible_moves(&self)  -> Vec<Position> {
         if let Some(meta_move) = self.next_meta_move {
             let moves = self.empty_spaces
             .iter()
