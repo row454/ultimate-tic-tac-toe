@@ -40,7 +40,7 @@ impl Game {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: ALL_SPACES.into_vec(),
+            empty_spaces: ALL_SPACES.to_vec(),
             },
             x,
             o,
@@ -83,7 +83,7 @@ impl GameState {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: ALL_SPACES.into_vec,
+            empty_spaces: ALL_SPACES.to_vec(),
         }
     }
 
@@ -153,7 +153,7 @@ impl GameState {
         let mini_result = self.mini_boards[meta_pos.1][meta_pos.0].place(mini_pos, self.turn)?;
         self.turn = self.turn.switch();
         self.meta_board[meta_pos.1][meta_pos.0] = mini_result;
-        assert!(self.empty_spaces.remove(&Position(meta_pos, mini_pos)));
+        self.empty_spaces.remove(self.empty_spaces.iter().position(|x| *x == Position(meta_pos, mini_pos)).expect("move not found in empty spaces"));
 
         if let BoardState::Ongoing = self.meta_board[mini_pos.1][mini_pos.0] {
             self.next_meta_move = Some(mini_pos);
