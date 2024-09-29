@@ -1,4 +1,5 @@
-use std::{borrow::Borrow, future::IntoFuture};
+use core::str;
+use std::{borrow::Borrow, future::IntoFuture, io::Read};
 
 use ai::mcts_worker::{mcts_worker, MctsInput};
 use futures::executor::LocalPool;
@@ -69,7 +70,7 @@ fn Menu() -> impl IntoView {
     view!{ {menu} }
 }
 
-const SIGNALING_SERVER_URL: &str = "http://server.row666.com:2001/one-to-one";
+const SIGNALING_SERVER_URL: &str = "https://server.row666.com:2001/one-to-one";
 const STUN_SERVER_URL: &str = "stun:stun.relay.metered.ca:80";
 
 #[component]            
@@ -79,9 +80,9 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let session_code: String = rand::thread_rng().sample_iter(&Alphanumeric).take(8).map(char::from).collect();
         let opponent_url = {
             let href = web_sys::window().unwrap().location().href().unwrap();
-            format!("{href}?code={}", session_code)
+            format!("{href}?code={}", session_code.as_str())
         };
-        let session_id = SessionId::new(session_code.clone());
+        let session_id = SessionId::new(session_code);
         let mut server = NetworkManager::new(SIGNALING_SERVER_URL, session_id, 
             ConnectionType::StunAndTurn { 
                 stun_urls: STUN_SERVER_URL.to_string(), 
@@ -165,8 +166,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
     } else {
         let (game, set_game) = create_signal(Game::new(Player::X, PlayerType::Online, PlayerType::Local));
         let href = web_sys::window().unwrap().location().search().unwrap();
-        let session_code = href.trim_start_matches("?code=").to_string();
-        let session_id = SessionId::new(session_code.clone());
+        let session_code = href.trim_start_matches("?code=");
+        let session_id = SessionId::new(session_code.to_string());
         let mut client = NetworkManager::new(
             SIGNALING_SERVER_URL,
             session_id,
@@ -188,7 +189,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let send_move = move |pos: Position| {
             client_clone.send_message(serde_json::to_string(&pos).unwrap().as_str()).unwrap()
         };
-        client.start(client_on_open, client_on_message).unwrap();
+        client.start(client_on_open, client_on_message);
         
         let game_view = {
         let mut out = Vec::with_capacity(9);
