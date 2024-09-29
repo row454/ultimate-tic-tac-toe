@@ -4,7 +4,7 @@ use std::{borrow::Borrow, future::IntoFuture, io::Read};
 use ai::mcts_worker::{mcts_worker, MctsInput};
 use futures::executor::LocalPool;
 use game::{Board, BoardState, Game, GameState, InvalidMoveError, Player, PlayerType, Position};
-use leptos::{component, create_action, create_effect, create_signal, ev::click, logging::log, mount_to_body, update, view, Callback, CollectView, IntoSignal, IntoView, ReadSignal, Signal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked};
+use leptos::{component, create_action, create_effect, create_signal, ev::click, logging::log, mount_to_body, update, view, Callback, CollectView, IntoSignal, IntoView, ReadSignal, Show, Signal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked};
 use rand::{distributions::Alphanumeric, Rng};
 use wasm_peers::{one_to_one::NetworkManager, ConnectionType, SessionId};
 use web_sys::console;
@@ -76,6 +76,7 @@ const STUN_SERVER_URL: &str = "stun:stun.relay.metered.ca:80";
 #[component]            
 fn OnlineGame(host: bool) -> impl IntoView {
     if host {
+        let (connected, set_connected) = create_signal(false);
         let (game, set_game) = create_signal(Game::new(Player::X, PlayerType::Local, PlayerType::Online));
         let session_code: String = rand::thread_rng().sample_iter(&Alphanumeric).take(8).map(char::from).collect();
         let opponent_url = {
@@ -102,7 +103,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let send_move = move |pos: Position| {
             server_clone.send_message(serde_json::to_string(&pos).unwrap().as_str()).unwrap()
         };
-        server.start(||{}, server_on_message);
+        server.start(move ||{create_effect(move |_| set_connected.set(true));}, server_on_message);
 
         
         let game_view = {
@@ -142,28 +143,29 @@ fn OnlineGame(host: bool) -> impl IntoView {
             out
         };
         view! {
-            <div class="outer-meta-board">
-                {
-                    move || game.with(|game| match game.state.board_state {
-                        BoardState::Ongoing => None,
-                        BoardState::Concluded(result) => {
-                            match result {
-                                game::BoardResult::XWin => Some(view!{<img class="overlayed-result" src="x.svg"/>}),
-                                game::BoardResult::OWin => Some(view!{<img class="overlayed-result" src="o.svg"/>}),
-                                game::BoardResult::Tie => None
+            <Show when=move || {connected.get()} fallback=move || view! {<p>Send to your opponent: {opponent_url.clone()}</p>}>
+                <div class="outer-meta-board">
+                    {
+                        move || game.with(|game| match game.state.board_state {
+                            BoardState::Ongoing => None,
+                            BoardState::Concluded(result) => {
+                                match result {
+                                    game::BoardResult::XWin => Some(view!{<img class="overlayed-result" src="x.svg"/>}),
+                                    game::BoardResult::OWin => Some(view!{<img class="overlayed-result" src="o.svg"/>}),
+                                    game::BoardResult::Tie => None
+                                }
                             }
-                        }
-                    })
-                }
-                    
-                <div class="meta-board" class:concluded=move || game.with(|game| matches!(game.state.board_state, BoardState::Concluded(_)))>
-                    {game_view}
+                        })
+                    }
+                        
+                    <div class="meta-board" class:concluded=move || game.with(|game| matches!(game.state.board_state, BoardState::Concluded(_)))>
+                        {game_view.clone()}
+                    </div>
                 </div>
-                <p>Send to your opponent: {opponent_url}</p>
-            </div>
-            
+            </Show>
         }
     } else {
+        let (connected, set_connected) = create_signal(false);
         let (game, set_game) = create_signal(Game::new(Player::X, PlayerType::Online, PlayerType::Local));
         let href = web_sys::window().unwrap().location().search().unwrap();
         let session_code = href.trim_start_matches("?code=");
@@ -177,7 +179,6 @@ fn OnlineGame(host: bool) -> impl IntoView {
                 credential: "wHgTOHX2SFMXgGPD".to_string() }
          ).unwrap();
 
-        let client_on_open = ||{};
         let client_clone = client.clone();
         let client_on_message = {
             move |message: String| {
@@ -189,7 +190,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let send_move = move |pos: Position| {
             client_clone.send_message(serde_json::to_string(&pos).unwrap().as_str()).unwrap()
         };
-        client.start(client_on_open, client_on_message);
+        client.start(move ||{create_effect(move |_| set_connected.set(true));}, client_on_message);
         
         let game_view = {
         let mut out = Vec::with_capacity(9);
@@ -228,25 +229,26 @@ fn OnlineGame(host: bool) -> impl IntoView {
         out
     };
     view! {
-        <div class="outer-meta-board">
-        {
-            move || game.with(|game| match game.state.board_state {
-                BoardState::Ongoing => None,
-                BoardState::Concluded(result) => {
-                    match result {
-                        game::BoardResult::XWin => Some(view!{<img class="overlayed-result" src="x.svg"/>}),
-                        game::BoardResult::OWin => Some(view!{<img class="overlayed-result" src="o.svg"/>}),
-                        game::BoardResult::Tie => None
-                    }
+        <Show when=move || {connected.get()} fallback=|| view! {<p>Connecting...</p>}>
+            <div class="outer-meta-board">
+                {
+                    move || game.with(|game| match game.state.board_state {
+                        BoardState::Ongoing => None,
+                        BoardState::Concluded(result) => {
+                            match result {
+                                game::BoardResult::XWin => Some(view!{<img class="overlayed-result" src="x.svg"/>}),
+                                game::BoardResult::OWin => Some(view!{<img class="overlayed-result" src="o.svg"/>}),
+                                game::BoardResult::Tie => None
+                            }
+                        }
+                    })
                 }
-            })
-        }
-            
-        <div class="meta-board" class:concluded=move || game.with(|game| matches!(game.state.board_state, BoardState::Concluded(_)))>
-            {game_view}
-        </div>
-    </div>
-        
+                    
+                <div class="meta-board" class:concluded=move || game.with(|game| matches!(game.state.board_state, BoardState::Concluded(_)))>
+                    {game_view.clone()}
+                </div>
+            </div>
+        </Show>
     }
 
 
