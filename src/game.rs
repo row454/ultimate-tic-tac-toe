@@ -1,12 +1,20 @@
 use core::fmt;
 use std::{borrow::BorrowMut, collections::HashSet, default, fmt::Debug, mem, rc::Rc, sync::Arc, time::Duration};
-
+use nohash_hasher::BuildNoHashHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
 use rand::{seq::IteratorRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 
 use crate::ai::{mcts::{mcts, Node}, minimax_expected_outcome};
-
-pub type Position = ((usize, usize), (usize, usize));
+#[derive(Copy, Clone, Serialize, Deserialize, Eq, PartialEq, Debug)]
+pub struct Position(pub (usize, usize), pub (usize, usize));
+impl nohash_hasher::IsEnabled for Position {}
+impl Hash for Position {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u8((self.0.0 << 6 | self.0.1 << 4 | self.1.0 << 2 | self.1.1) as u8)
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct GameState {
@@ -15,7 +23,7 @@ pub struct GameState {
     pub next_meta_move: Option<(usize, usize)>,
     pub board_state: BoardState,
     pub turn: Player,
-    empty_spaces : HashSet<Position>,
+    empty_spaces : Vec<Position>,
 }
 #[derive(Clone)]
 pub struct Game {
@@ -32,7 +40,7 @@ impl Game {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: HashSet::from(ALL_SPACES),
+            empty_spaces: ALL_SPACES.into_vec(),
             },
             x,
             o,
@@ -45,7 +53,7 @@ const ALL_SPACES: [Position; 81] = {
     let mut pairs = [(0, 0); 9];
     let mut i = 0;
     let mut j = 0;
-    let mut result = [((0, 0), (0, 0)); 81];
+    let mut result = [Position((0, 0), (0, 0)); 81];
     while i < 3 {
         j = 0;
         while j < 3 {
@@ -58,10 +66,10 @@ const ALL_SPACES: [Position; 81] = {
     while i < 9 {
         let mut j = 0;
         while j < 9 {
-            result[i*9+j] = (pairs[i], pairs[j]);
-            j += 1
+            result[i*9+j] = Position(pairs[i], pairs[j]);
+            j += 1;
         }
-        i += 1
+        i += 1;
     }
     result
 };
@@ -75,7 +83,7 @@ impl GameState {
             next_meta_move: None,
             turn: starting_player,
             board_state: BoardState::Ongoing,
-            empty_spaces: HashSet::from(ALL_SPACES),
+            empty_spaces: ALL_SPACES.into_vec,
         }
     }
 
@@ -145,7 +153,7 @@ impl GameState {
         let mini_result = self.mini_boards[meta_pos.1][meta_pos.0].place(mini_pos, self.turn)?;
         self.turn = self.turn.switch();
         self.meta_board[meta_pos.1][meta_pos.0] = mini_result;
-        assert!(self.empty_spaces.remove(&(meta_pos, mini_pos)));
+        assert!(self.empty_spaces.remove(&Position(meta_pos, mini_pos)));
 
         if let BoardState::Ongoing = self.meta_board[mini_pos.1][mini_pos.0] {
             self.next_meta_move = Some(mini_pos);
@@ -154,7 +162,7 @@ impl GameState {
         }
         
         if let BoardState::Concluded(result) = mini_result {
-            self.empty_spaces.retain(|(meta, _mini)| meta != &meta_pos);
+            self.empty_spaces.retain(|Position(meta, _mini)| meta != &meta_pos);
             self.board_state = self.check_wins(meta_pos);
             return Ok(self.board_state)
         }
@@ -162,14 +170,14 @@ impl GameState {
         Ok(BoardState::Ongoing)
     }
 
-    pub fn get_possible_moves(&self)  -> HashSet<&Position> {
+    pub fn get_possible_moves(&self)  -> Vec<Position> {
         if let Some(meta_move) = self.next_meta_move {
             let moves = self.empty_spaces
             .iter()
-            .filter(|(meta, _mini)| meta == &meta_move).collect();
+            .filter(|Position(meta, _mini)| meta == &meta_move).map(|x| *x).collect();
             return moves
         }
-        return self.empty_spaces.iter().collect();
+        return self.empty_spaces.iter().map(|x| *x).collect();
     }
 }
 #[derive(Debug)]

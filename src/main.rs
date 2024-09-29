@@ -88,7 +88,7 @@ fn Game() -> impl IntoView {
                                 Player::O => &game.o
                             } {
                                 PlayerType::Local => (),
-                                PlayerType::Mcts => mcts_action.dispatch(((column, row), (mini_column, mini_row))),
+                                PlayerType::Mcts => mcts_action.dispatch(Position((column, row), (mini_column, mini_row))),
                                 _ => todo!(),
                             };
                             
