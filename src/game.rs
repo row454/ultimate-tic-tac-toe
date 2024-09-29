@@ -303,14 +303,15 @@ pub enum BoardState {
 pub enum PlayerType {
     Local,
     Mcts,
-    Minmax
+    Online,
+
 }
 impl std::fmt::Debug for PlayerType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Local => write!(f, "Local"),
             Self::Mcts => write!(f, "Mcts"),
-            Self::Minmax => write!(f, "Minmax"),
+            Self::Online => write!(f, "Online"),
         }
     }
 }

@@ -1,8 +1,11 @@
 use std::future::IntoFuture;
 
 use ai::mcts_worker::{mcts_worker, MctsInput};
+use futures::executor::LocalPool;
 use game::{Board, BoardState, Game, GameState, InvalidMoveError, Player, PlayerType, Position};
-use leptos::{component, create_action, create_effect, create_signal, logging::log, mount_to_body, update, view, Callback, CollectView, IntoSignal, IntoView, ReadSignal, Signal, SignalGet, SignalGetUntracked, SignalUpdate, SignalWith, SignalWithUntracked};
+use leptos::{component, create_action, create_effect, create_signal, logging::log, mount_to_body, update, view, Callback, CollectView, IntoSignal, IntoView, ReadSignal, Signal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked};
+use rand::distributions::Alphanumeric;
+
 
 mod game;
 mod ai;
@@ -10,10 +13,50 @@ mod ai;
 fn main() {
     if web_sys::window().is_some() {
         console_error_panic_hook::set_once();
-        mount_to_body(|| view!{<Game/>});
+        mount_to_body(|| view!{<Menu/>});
     }
 }
+#[derive(Clone)]
+enum Gamemode {
+    Ai,
+    Online
+}
+#[component]
+fn Menu() -> impl IntoView {
+    let (gamemode, set_gamemode) = create_signal(None);
+    let menu = move || {
+        match gamemode.get() {
+            None => view! {
+                <div class="menu">
+                    <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Ai))}>Play vs AI</button>
+                    <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Online))}>Play Online</button>
+                </div>
+            },
+            Some(Gamemode::Ai) => {
+                view! {
+                    <div class="post-menu">
+                        <Game/>
+                    </div>
+                }
+            },
+            Some(Gamemode::Online) => {
+                view! {
+                    
+                    <div class="post-menu">
+                        <OnlineGame host=true/>
+                    </div>
+                }
+            }
+        }
+    };
+    view!{ {menu} }
+}
+#[component]
+fn OnlineGame(host: bool) -> impl IntoView {
+    if host {
 
+    }
+}
 #[component]
 fn Game() -> impl IntoView {
 
