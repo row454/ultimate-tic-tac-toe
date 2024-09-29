@@ -341,6 +341,9 @@ fn MiniBoard(board: Signal<Board>, state: Signal<BoardState>, #[prop(into)] plac
                     class:taken=move || board.with(|board| matches!(board.board[row][column], game::BoardSpace::Taken(_)))
                     on:click=move |_| {
                         place((row, column)); 
+                    }
+                    on:touchend=move |_| {
+                        place((row, column)); 
                     }>
                         {   
                             move || match board().board[row][column] {
