@@ -202,16 +202,16 @@ fn OnlineGame(host: bool) -> impl IntoView {
                 </div>
                 <div class="chat">
                 <div class="chat-log">
-                    <For each=chat_history key=|message| message.id each=move |ChatMessage { player, content, id }| {
+                    <For each=chat_history key=|message| message.id children=move |ChatMessage { player, content, id }| {
                         view! {
                             <p>
-                            {
-                                match player {
-                                    Player::X => view!{<b>"X:"</b>},
-                                    Player::O => view!{<b>"O:"</b>}
+                                {
+                                    match player {
+                                        Player::X => view!{<b>"X:"</b>},
+                                        Player::O => view!{<b>"O:"</b>}
+                                    }
                                 }
-                            }
-                            {content}
+                                {content}
                             </p>
                         }
                     }/>
@@ -335,7 +335,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
             </div>
             <div class="chat">
                 <div class="chat-log">
-                    <For each=chat_history key=|message| message.id each=move |ChatMessage { player, content, id }| {
+                    <For each=chat_history key=|message| message.id children=move |ChatMessage { player, content, id }| {
                         view! {
                             <p>
                             {
