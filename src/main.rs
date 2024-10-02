@@ -132,11 +132,11 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let submit_message = move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
             let content = message_input().expect("<input> should be mounted").value();
-            let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>::() as u128) << 64);
+            let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>() as u128) << 64);
             let chat_message = ChatMessage {
                 player: Player::X,
                 content,
-                id: 
+                id
             };
             set_chat_history.update(|chat_history| chat_history.push(chat_message));
             server_clone.send_message(serde_json::to_string(&Message::Text(chat_message)).unwrap().as_str()).unwrap()
@@ -217,8 +217,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
                     }/>
                 </div>
                 <form on:submit=submit_message>
-                    <input type="text" value="Enter message here..." node_ref=message_input>
-                    <input type="submit" value="→">
+                    <input type="text" value="Enter message here..." node_ref=message_input/>
+                    <input type="submit" value="→"/>
                 </form>
             </div>
             </Show>
@@ -266,7 +266,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let submit_message = move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
             let content = message_input().expect("<input> should be mounted").value();
-            let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>::() as u128) << 64);
+            let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>() as u128) << 64);
             let chat_message = ChatMessage {
                 player: Player::O,
                 content,
@@ -350,8 +350,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
                     }/>
                 </div>
                 <form on:submit=submit_message>
-                    <input type="text" value="Enter message here..." node_ref=message_input>
-                    <input type="submit" value="→">
+                    <input type="text" value="Enter message here..." node_ref=message_input/>
+                    <input type="submit" value="→"/>
                 </form>
             </div>
         </Show>
