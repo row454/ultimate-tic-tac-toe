@@ -4,13 +4,13 @@ use std::{borrow::Borrow, future::IntoFuture, io::Read};
 use ai::mcts_worker::{mcts_worker, MctsInput};
 use futures::executor::LocalPool;
 use game::{Board, BoardState, Game, GameState, InvalidMoveError, Player, PlayerType, Position};
-use leptos::{component, create_action, create_effect, create_signal, ev::click, logging::log, mount_to_body, update, view, Callback, CollectView, IntoSignal, IntoView, ReadSignal, Show, Signal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked};
+use leptos::{For, html, NodeRef, create_node_ref, component, create_action, create_effect, create_signal, ev::click, logging::log, mount_to_body, update, view, Callback, CollectView, IntoSignal, IntoView, ReadSignal, Show, Signal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked};
 use rand::{distributions::Alphanumeric, Rng};
 use wasm_peers::{one_to_one::NetworkManager, ConnectionType, SessionId};
 use web_sys::console;
 use web_time::SystemTime;
 use std::time::Duration;
-
+use serde::{Deserialize, Serialize};
 
 mod game;
 mod ai;
@@ -112,12 +112,12 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let server_clone = server.clone();
         let server_on_message = {
             move |message: String| {
-                let message: Message = serde::json::from_str(message.as_str()).unwrap();
+                let message: Message = serde_json::from_str(message.as_str()).unwrap();
                 match message {
-                    Text(text) => {
+                    Message::Text(text) => {
                         create_effect(move |_| set_chat_history.update(|chat_history| { chat_history.push(text) }));
                     },
-                    Move(pos) = {
+                    Message::Move(pos) => {
                         create_effect(move |_| set_game.update(|game| { game.state.place(pos.0, pos.1).unwrap(); }));
                     }
                 }
@@ -132,14 +132,15 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let submit_message = move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
             let content = message_input().expect("<input> should be mounted").value();
+            let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>::() as u128) << 64);
             let chat_message = ChatMessage {
                 player: Player::X,
                 content,
-                id: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>::() as u128) << 64)
-            }
+                id: 
+            };
             set_chat_history.update(|chat_history| chat_history.push(chat_message));
             server_clone.send_message(serde_json::to_string(&Message::Text(chat_message)).unwrap().as_str()).unwrap()
-        }
+        };
         server.start(move ||{create_effect(move |_| set_connected.set(true));}, server_on_message);
         
         
@@ -216,8 +217,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
                     }/>
                 </div>
                 <form on:submit=submit_message>
-                    <input type="text" value="Enter message here..." node_ref=message_input/>
-                    <input type="submit" value="→"/>
+                    <input type="text" value="Enter message here..." node_ref=message_input>
+                    <input type="submit" value="→">
                 </form>
             </div>
             </Show>
@@ -245,12 +246,12 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let client_clone = client.clone();
         let client_on_message = {
             move |message: String| {
-                let message: Message = serde::json::from_str(message.as_str()).unwrap();
+                let message: Message = serde_json::from_str(message.as_str()).unwrap();
                 match message {
-                    Text(text) => {
+                    Message::Text(text) => {
                         create_effect(move |_| set_chat_history.update(|chat_history| { chat_history.push(text) }));
                     },
-                    Move(pos) = {
+                    Message::Move(pos) => {
                         create_effect(move |_| set_game.update(|game| { game.state.place(pos.0, pos.1).unwrap(); }));
                     }
                 }
@@ -258,20 +259,22 @@ fn OnlineGame(host: bool) -> impl IntoView {
         };
         let client_clone = client.clone();
         let send_move = move |pos: Position| {
-            server_clone.send_message(serde_json::to_string(&Message::Move(pos)).unwrap().as_str()).unwrap()
+            client_clone.send_message(serde_json::to_string(&Message::Move(pos)).unwrap().as_str()).unwrap()
         };
-        let server_clone = server.clone();
+        let client_clone = client.clone();
+        
         let submit_message = move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
             let content = message_input().expect("<input> should be mounted").value();
+            let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>::() as u128) << 64);
             let chat_message = ChatMessage {
                 player: Player::O,
                 content,
-                id: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>::() as u128) << 64)
-            }
+                id
+            };
             set_chat_history.update(|chat_history| chat_history.push(chat_message));
-            server_clone.send_message(serde_json::to_string(&Message::Text(chat_message)).unwrap().as_str()).unwrap()
-        }
+            client_clone.send_message(serde_json::to_string(&Message::Text(chat_message)).unwrap().as_str()).unwrap();
+        };
         client.start(move ||{create_effect(move |_| set_connected.set(true));}, client_on_message);
         
         let game_view = {
@@ -348,7 +351,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
                 </div>
                 <form on:submit=submit_message>
                     <input type="text" value="Enter message here..." node_ref=message_input>
-                    <input type="submit" value="→"/>
+                    <input type="submit" value="→">
                 </form>
             </div>
         </Show>
