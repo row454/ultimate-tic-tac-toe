@@ -79,7 +79,7 @@ enum Message {
     Text(ChatMessage),
     Move(Position)
 }
-
+#[derive(Clone, Serialize, Deserialize)]
 struct ChatMessage {
     player: Player,
     content: String,
@@ -201,7 +201,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
                 </div>
                 <div class="chat">
                 <div class="chat-log">
-                    <For each=chat_history key=|message| message.id each=move |ChatMessage { player, content, _id }| {
+                    <For each=chat_history key=|message| message.id each=move |ChatMessage { player, content, id }| {
                         view! {
                             <p>
                             {
@@ -332,7 +332,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
             </div>
             <div class="chat">
                 <div class="chat-log">
-                    <For each=chat_history key=|message| message.id each=move |ChatMessage { player, content, _id }| {
+                    <For each=chat_history key=|message| message.id each=move |ChatMessage { player, content, id }| {
                         view! {
                             <p>
                             {
