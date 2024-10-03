@@ -1,0 +1,64 @@
+img.overlayed-result {
+  position: absolute;
+  margin: 10%;
+  z-index: 1;
+  width: 80%;
+}
+
+.outer-mini-board {
+  position: relative;
+  aspect-ratio: 1;
+}
+.mini-board.concluded {
+  z-index: 0;
+  position: absolute;
+  filter: blur(0.1vh);
+}
+div {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 1px;
+  margin: 1px;
+
+}
+.mini-board {
+  display: grid;
+  margin: 1px;
+  aspect-ratio: 1;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.meta-board {
+  display: grid;
+  margin: auto;
+  grid-template-columns: 1fr 1fr 1fr;
+  height: 60vh;
+  aspect-ratio: 1;
+}
+.board-space {
+  aspect-ratio: 1;
+}
+.board-space:hover {
+  cursor: pointer;
+}
+.board-space.inactive {
+  background-color: #d1d1d1;
+  pointer-events: none;
+}
+.board-space.taken {
+  pointer-events: none;
+}
+.board-space.inactive:hover {
+  cursor: default;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+.post-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
