@@ -115,7 +115,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
                 let message: Message = serde_json::from_str(message.as_str()).unwrap();
                 match message {
                     Message::Text(text) => {
-                        create_effect(move |_| set_chat_history.update(|chat_history| { chat_history.push(text) }));
+                        create_effect(move |_| set_chat_history.update(|chat_history| { chat_history.push(text.clone()) }));
                     },
                     Message::Move(pos) => {
                         create_effect(move |_| set_game.update(|game| { game.state.place(pos.0, pos.1).unwrap(); }));
@@ -131,15 +131,17 @@ fn OnlineGame(host: bool) -> impl IntoView {
         let server_clone = server.clone();
         let submit_message = move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
-            let content = message_input().expect("<input> should be mounted").value();
+            let input = message_input().expect("<input> should be mounted");
+            let content = input.value();
             let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>() as u128) << 64);
             let chat_message = ChatMessage {
                 player: Player::X,
                 content,
                 id
             };
-            set_chat_history.update(|chat_history| chat_history.push(chat_message));
-            server_clone.send_message(serde_json::to_string(&Message::Text(chat_message)).unwrap().as_str()).unwrap()
+            set_chat_history.update(|chat_history| chat_history.push(chat_message.clone()));
+            server_clone.send_message(serde_json::to_string(&Message::Text(chat_message)).unwrap().as_str()).unwrap();
+            input.set_value("");
         };
         server.start(move ||{create_effect(move |_| set_connected.set(true));}, server_on_message);
         
@@ -207,8 +209,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
                             <p>
                                 {
                                     match player {
-                                        Player::X => view!{<b>"X:"</b>},
-                                        Player::O => view!{<b>"O:"</b>}
+                                        Player::X => view!{<b>"X: "</b>},
+                                        Player::O => view!{<b>"O: "</b>}
                                     }
                                 }
                                 {content}
@@ -216,8 +218,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
                         }
                     }/>
                 </div>
-                <form on:submit=submit_message>
-                    <input type="text" value="Enter message here..." node_ref=message_input/>
+                <form on:submit=submit_message.clone()>
+                    <input type="text" placeholder="Enter message here..." node_ref=message_input/>
                     <input type="submit" value="→"/>
                 </form>
             </div>
@@ -249,7 +251,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
                 let message: Message = serde_json::from_str(message.as_str()).unwrap();
                 match message {
                     Message::Text(text) => {
-                        create_effect(move |_| set_chat_history.update(|chat_history| { chat_history.push(text) }));
+                        create_effect(move |_| set_chat_history.update(|chat_history| { chat_history.push(text.clone()) }));
                     },
                     Message::Move(pos) => {
                         create_effect(move |_| set_game.update(|game| { game.state.place(pos.0, pos.1).unwrap(); }));
@@ -265,15 +267,17 @@ fn OnlineGame(host: bool) -> impl IntoView {
         
         let submit_message = move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
-            let content = message_input().expect("<input> should be mounted").value();
+            let input = message_input().expect("<input> should be mounted");
+            let content = input.value();
             let id = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() | ((rand::random::<u64>() as u128) << 64);
             let chat_message = ChatMessage {
                 player: Player::O,
                 content,
                 id
             };
-            set_chat_history.update(|chat_history| chat_history.push(chat_message));
+            set_chat_history.update(|chat_history| chat_history.push(chat_message.clone()));
             client_clone.send_message(serde_json::to_string(&Message::Text(chat_message)).unwrap().as_str()).unwrap();
+            input.set_value("");
         };
         client.start(move ||{create_effect(move |_| set_connected.set(true));}, client_on_message);
         
@@ -340,8 +344,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
                             <p>
                             {
                                 match player {
-                                    Player::X => view!{<b>"X:"</b>},
-                                    Player::O => view!{<b>"O:"</b>}
+                                    Player::X => view!{<b>"X: "</b>},
+                                    Player::O => view!{<b>"O: "</b>}
                                 }
                             }
                             {content}
@@ -349,8 +353,8 @@ fn OnlineGame(host: bool) -> impl IntoView {
                         }
                     }/>
                 </div>
-                <form on:submit=submit_message>
-                    <input type="text" value="Enter message here..." node_ref=message_input/>
+                <form on:submit=submit_message.clone()>
+                    <input type="text" placeholder="Enter message here..." node_ref=message_input/>
                     <input type="submit" value="→"/>
                 </form>
             </div>
