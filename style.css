@@ -66,4 +66,6 @@ img {
 .outer-meta-board {
   background-color: black;
   padding: 3px;
+  position: relative;
+  aspect-ratio: 1;
 }
