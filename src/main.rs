@@ -45,7 +45,10 @@ fn Menu() -> impl IntoView {
                     <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Host))}>Play Online</button>
                     <div class="slidecontainer">
                      <input type="range" min="-3000" max="477" value="477" class="slider" id="myRange"
-                        bind:value=(difficulty, set_difficulty)
+                        on:input:target=move |ev| {
+            // .value() returns the current value of an HTML input element
+            set_difficulty.set(ev.target().value());
+        }
                       />
                       <p> {|| {10f32.powf(difficulty.get() as f32 / 1000f32)} } </p>
                     </div>
