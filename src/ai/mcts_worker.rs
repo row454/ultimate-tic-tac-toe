@@ -26,7 +26,7 @@ pub async fn mcts_worker(
         match input {
             MctsInput::TakeMove { board, previous_move } => {
                 root.take_move(previous_move);
-                let best_move = mcts(&board, 100, web_time::Duration::from_secs(3), &mut root);
+                let best_move = mcts(&board, 100, web_time::Duration::from_millis(100), &mut root);
                 root.take_move(best_move);
                 log!("nodes in tree:{:?}, number of simulations:{:?}, chance of winning:{:?}", root.count_descendants(), root.simulations, root.score as f32/root.simulations as f32);
                 tx.send_async(best_move).await.unwrap();
