@@ -16,7 +16,7 @@ pub enum MctsInput {
 }
 #[worker(MctsWorker)]
 pub async fn mcts_worker(
-    init: f32
+    init: f32,
     rx: leptos_workers::Receiver<MctsInput>,
     tx: leptos_workers::Sender<Position>
 ) {
