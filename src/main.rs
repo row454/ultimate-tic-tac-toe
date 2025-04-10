@@ -43,21 +43,19 @@ fn Menu() -> impl IntoView {
                 <div class="menu">
                     <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Ai))}>Play vs AI</button>
                     <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Host))}>Play Online</button>
-                </div>
-                <div class="slidecontainer">
+                    <div class="slidecontainer">
                      <input type="range" min="-3000" max="477" value="477" class="slider" id="myRange"
-                        on:input:target=move |ev| {
-                             set_difficulty.set(ev.target().value());
-                         }
-                        prop:value=difficulty
+                        bind:value=(difficulty, set_difficulty)
                       />
-                      <p> {|| {10f32.pow(difficulty.get() as f32 / 1000)} } </p>
+                      <p> {|| {10f32.powf(difficulty.get() as f32 / 1000f32)} } </p>
+                    </div>
                 </div>
+                
             },
             Some(Gamemode::Ai) => {
                 view! {
                     <div class="post-menu">
-                        <Game difficulty=difficulty.get/>
+                        <Game difficulty=difficulty.get()/>
                     </div>
                 }
             },
@@ -378,7 +376,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
 fn Game(difficulty: i32) -> impl IntoView {
 
     let (game, set_game) = create_signal(Game::new(Player::X, PlayerType::Local, PlayerType::Mcts));
-    let (mcts_sender, mcts_reciever) = mcts_worker(10f32.pow(difficulty as f32 / 1000)).unwrap();
+    let (mcts_sender, mcts_reciever) = mcts_worker(10f32.powf(difficulty as f32 / 1000f32)).unwrap();
     let mcts_action = create_action(move |pos: &Position| {
         let pos = pos.to_owned();
         let mcts_sender = mcts_sender.clone();
