@@ -47,10 +47,10 @@ fn Menu() -> impl IntoView {
                      <input type="range" min="-3000" max="477" value="477" class="slider" id="myRange"
                         on:input=move |ev| {
             // .value() returns the current value of an HTML input element
-            set_difficulty.set(leptos::event_target_value(&ev));
+            set_difficulty.set(leptos::event_target_value(&ev).parse());
         }      prop:value=difficulty
                       />
-                      <p> {|| {10f32.powf(difficulty.get() as f32 / 1000f32)} } </p>
+                      <p> {|| {10f32.powf(difficulty.get() as f32 / 1000f32)} } seconds for the ai to think</p> 
                     </div>
                 </div>
                 
