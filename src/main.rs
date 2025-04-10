@@ -48,7 +48,7 @@ fn Menu() -> impl IntoView {
                         on:input:target=move |ev| {
             // .value() returns the current value of an HTML input element
             set_difficulty.set(ev.target().value());
-        }
+        }      prop:value=difficulty
                       />
                       <p> {|| {10f32.powf(difficulty.get() as f32 / 1000f32)} } </p>
                     </div>
