@@ -45,12 +45,12 @@ fn Menu() -> impl IntoView {
                     <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Ai))}>Play vs AI</button>
                     <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Host))}>Play Online</button>
                     <div class="slidecontainer">
-                        <input type="range" min="-2500" max="477" value="477" class="slider" id="myRange"
+                        <input type="range" min="-2000" max="477" value="477" class="slider" id="myRange"
                             on:input=move |ev| {
                                 set_difficulty.set(leptos::event_target_value(&ev).parse().unwrap());
                             }
                         />
-                    <p> {move || {format!("{:.3}", 10f32.powf(difficulty_clone.get() as f32 / 1000f32))} } seconds for the ai to think</p> 
+                    <p> {move || {format!("{:.2}", 10f32.powf(difficulty_clone.get() as f32 / 1000f32))} } seconds for the ai to think</p> 
                     </div>
                 </div>
                 
@@ -406,7 +406,11 @@ fn Game(difficulty: i32) -> impl IntoView {
                                 Player::O => &game.o
                             } {
                                 PlayerType::Local => (),
-                                PlayerType::Mcts => mcts_action.dispatch(Position((column, row), (mini_column, mini_row))),
+                                PlayerType::Mcts => {
+                                    match game.state.board_state {
+                                        BoardState::Ongoing => mcts_action.dispatch(Position((column, row), (mini_column, mini_row))),
+                                        _ => None
+                                   },
                                 _ => todo!(),
                             };
                             
