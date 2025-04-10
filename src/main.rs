@@ -204,7 +204,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
                 </div>
                 <div class="chat">
                 <div class="chat-log">
-                    <For each=|| chat_history.get().iter().rev() key=|message| message.id children=move |ChatMessage { player, content, id }| {
+                    <For each=chat_history key=|message| message.id children=move |ChatMessage { player, content, id }| {
                         view! {
                             <p>
                                 {
@@ -339,7 +339,7 @@ fn OnlineGame(host: bool) -> impl IntoView {
             </div>
             <div class="chat">
                 <div class="chat-log">
-                    <For each=|| chat_history.get().iter().rev() key=|message| message.id children=move |ChatMessage { player, content, id }| {
+                    <For each=chat_history key=|message| message.id children=move |ChatMessage { player, content, id }| {
                         view! {
                             <p>
                             {
