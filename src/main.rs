@@ -32,6 +32,7 @@ fn Menu() -> impl IntoView {
     
     let (gamemode, set_gamemode) = create_signal(None);
     let (difficulty, set_difficulty) = create_signal(477);
+    let difficulty_clone = difficulty.clone();
     if let Ok(search) = web_sys::window().unwrap().location().search() {
         if search != ""  {
             set_gamemode.set(Some(Gamemode::Client));
@@ -45,11 +46,11 @@ fn Menu() -> impl IntoView {
                     <button on:click=move |_| {set_gamemode.set(Some(Gamemode::Host))}>Play Online</button>
                     <div class="slidecontainer">
                         <input type="range" min="-3000" max="477" value="477" class="slider" id="myRange"
-                            on:input=|ev| {
+                            on:input=move |ev| {
                                 set_difficulty.set(leptos::event_target_value(&ev).parse().unwrap());
                             }
                         />
-                    <p> {|| {10f32.powf(difficulty.get() as f32 / 1000f32)} } seconds for the ai to think</p> 
+                    <p> {move || {10f32.powf(difficulty_clone.get() as f32 / 1000f32)} } seconds for the ai to think</p> 
                     </div>
                 </div>
                 
