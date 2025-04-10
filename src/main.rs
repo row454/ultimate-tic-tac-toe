@@ -50,7 +50,7 @@ fn Menu() -> impl IntoView {
                                 set_difficulty.set(leptos::event_target_value(&ev).parse().unwrap());
                             }
                         />
-                    <p> {move || {format!("{:.3}", 10f32.powf(difficulty_clone.get() as f32 / 1000f32)}) } seconds for the ai to think</p> 
+                    <p> {move || {format!("{:.3}", 10f32.powf(difficulty_clone.get() as f32 / 1000f32))} } seconds for the ai to think</p> 
                     </div>
                 </div>
                 
