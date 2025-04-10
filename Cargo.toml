@@ -8,7 +8,7 @@ edition = "2021"
 console_error_panic_hook = "0.1.7"
 futures = "0.3.30"
 leptos = { version = "0.6.14", features = ["csr", "nightly"] }
-leptos_workers = "0.2.2"
+leptos_workers = "0.3.0"
 rand = { version = "0.8.5", features = ["small_rng"] }
 
 serde = { version = "1.0.208", features = ["derive"] }
