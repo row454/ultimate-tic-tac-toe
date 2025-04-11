@@ -411,6 +411,7 @@ fn Game(difficulty: i32) -> impl IntoView {
                                         BoardState::Ongoing => mcts_action.dispatch(Position((column, row), (mini_column, mini_row))),
                                         _ => None
                                    },
+                                },
                                 _ => todo!(),
                             };
                             
