@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <base href="./" />
+        
+        
+        <link rel="stylesheet" href="./style-6a095d96285995c0.css" integrity="sha384-OLDIqEOEdT4AsGSEEePDoGXJehNEzxxmTDN4XHaD+F1KFasTqnHJdBNHygZBkfmw"/>
+    <link rel="modulepreload" href="./ultimate-tic-tac-toe-4d3cf43a8f4a4bc9.js" crossorigin="anonymous" integrity="sha384-Ru7aBP48iCbgsD9Hs8AfkaBS1wWTT3IclqLO0o0gCvmU9pQDyYP3F8mapqsWFT3+"><link rel="preload" href="./ultimate-tic-tac-toe-4d3cf43a8f4a4bc9_bg.wasm" crossorigin="anonymous" integrity="sha384-MnS+xDryiPgBOfGhunGPEwq505uUTp63A0RvYfcwIyBOTak5CWKF+kc0Ne5Noy3+" as="fetch" type="application/wasm"></head>
+    <body>
+<script type="module">
+import init, * as bindings from './ultimate-tic-tac-toe-4d3cf43a8f4a4bc9.js';
+const wasm = await init({ module_or_path: './ultimate-tic-tac-toe-4d3cf43a8f4a4bc9_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+</html>
