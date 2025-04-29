@@ -1,7 +1,7 @@
 [package]
 name = "ultimate-tic-tac-toe"
 version = "0.2.0"
-authors = ["row454 <rowcanhope5@gmail.com>"]
+authors = ["row454 <rowanhope5@gmail.com>"]
 edition = "2021"
 
 [dependencies]
